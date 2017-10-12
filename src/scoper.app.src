@@ -1,0 +1,17 @@
+{application, scoper , [
+    {description, "Log metadata scoping library"},
+    {vsn, "1"},
+    {registered, []},
+    {applications, [
+        kernel,
+        stdlib,
+        lager
+    ]},
+    {env, []},
+    {modules, []},
+    {maintainers, [
+        "Anton Belyaev <a.belyaev@rbkmoney.com>"
+    ]},
+    {licenses, []},
+    {links, []}
+]}.
