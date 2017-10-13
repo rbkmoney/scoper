@@ -4,6 +4,12 @@
 -export([keystore/2]).
 -export([keyfind/1]).
 -export([keydelete/1]).
+-export([get_data/0]).
+
+
+%% Types
+-type data() :: [{scoper:scope_name(), scoper:payload()}].
+-export_type([data/0]).
 
 
 %%
@@ -18,6 +24,9 @@
 
 -callback keydelete(scoper:key()) ->
     ok.
+
+-callback get_data() ->
+    data().
 
 
 %%
@@ -38,6 +47,11 @@ keyfind(Key) ->
     ok.
 keydelete(Key) ->
     (logger()):keydelete(Key).
+
+-spec get_data() ->
+    data().
+get_data() ->
+    (logger()):get_data().
 
 
 %%

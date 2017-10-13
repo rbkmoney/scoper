@@ -2,31 +2,12 @@
 
 -behaviour(scoper_logger).
 
-%% API
--export([get_data/0]).
-
 
 %% scoper_logger behaviour callbacks.
 -export([keystore/2]).
 -export([keyfind/1]).
 -export([keydelete/1]).
-
-
-%% Types
--type data() :: [{scoper:scope_name(), scoper:payload()}].
--export_type([data/0]).
-
-
-%%
-%% API
-%%
--spec get_data() ->
-    data().
-get_data() ->
-    case erlang:get(?MODULE) of
-        undefined -> [];
-        Data      -> Data
-    end.
+-export([get_data/0]).
 
 
 %%
@@ -48,11 +29,19 @@ keyfind(Key) ->
 keydelete(Key) ->
     put_data(lists:keydelete(Key, 1, get_data())).
 
+-spec get_data() ->
+    scoper_logger:data().
+get_data() ->
+    case erlang:get(?MODULE) of
+        undefined -> [];
+        Data      -> Data
+    end.
+
 
 %%
 %% Internal functions
 %%
--spec put_data(data()) ->
+-spec put_data(scoper_logger:data()) ->
     ok.
 put_data(Data) ->
     _ = erlang:put(?MODULE, Data),

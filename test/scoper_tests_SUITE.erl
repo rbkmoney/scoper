@@ -97,23 +97,20 @@ end_per_group(_, C) ->
 %%
 -spec scope_ok(config()) ->
     ok.
-scope_ok(C) ->
-    scope_ok_test(?config(scoper_logger, C)).
+scope_ok(_C) ->
+    scope_ok_test([scope1, scope2, scope3], []).
 
-scope_ok_test(Logger) ->
-    scope_ok_test([scope1, scope2, scope3], [], Logger).
-
-scope_ok_test([], State, Logger) ->
-    ok = validate_scopes(State, Logger);
-scope_ok_test([Scope | T], State, Logger) ->
-    ok = validate_scopes(State, Logger),
+scope_ok_test([], State) ->
+    ok = validate_scopes(State);
+scope_ok_test([Scope | T], State) ->
+    ok = validate_scopes(State),
     NewState = [Scope | State],
     scoper:scope(
         Scope,
-        fun() -> scope_ok_test(T, NewState, Logger) end,
+        fun() -> scope_ok_test(T, NewState) end,
         #{scopes => NewState}
     ),
-    ok = validate_scopes(State, Logger).
+    ok = validate_scopes(State).
 
 -spec play_with_meta(config()) ->
     ok.
@@ -182,8 +179,8 @@ play_with_meta(_C) ->
 %%
 %% Internal functions
 %%
-validate_scopes(State, Logger) ->
-    do_validate_scopes(State, get_scopes_data(Logger)).
+validate_scopes(State) ->
+    do_validate_scopes(State, scoper_logger:get_data()).
 
 do_validate_scopes([], []) ->
     ok;
@@ -202,6 +199,3 @@ validate_scope_meta(State, Metadata) ->
         State
     ),
     ok.
-
-get_scopes_data(Logger) ->
-    Logger:get_data().

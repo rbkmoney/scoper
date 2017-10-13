@@ -2,28 +2,12 @@
 
 -behaviour(scoper_logger).
 
-%% API
--export([get_data/0]).
-
 
 %% scoper_logger behaviour callbacks
 -export([keystore/2]).
 -export([keyfind/1]).
 -export([keydelete/1]).
-
-
-%% Types
--type data() :: [{scoper:scope_name(), scoper:payload()}].
--export_type([data/0]).
-
-
-%%
-%% API
-%%
--spec get_data() ->
-    data().
-get_data() ->
-    lager:md().
+-export([get_data/0]).
 
 
 %%
@@ -44,3 +28,8 @@ keyfind(Key) ->
     ok.
 keydelete(Key) ->
     lager:md(lists:keydelete(Key, 1, lager:md())).
+
+-spec get_data() ->
+    scoper_logger:data().
+get_data() ->
+    lager:md().
