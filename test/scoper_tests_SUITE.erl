@@ -115,7 +115,7 @@ scope_ok_test([Scope | T], State) ->
 -spec play_with_meta(config()) ->
     ok.
 play_with_meta(_C) ->
-    try scoper:set_meta(#{dummy => dummy}, scope1)
+    try scoper:add_meta(#{dummy => dummy}, scope1)
     catch
         error:badarg -> ok
     end,
@@ -127,19 +127,19 @@ play_with_meta(_C) ->
 
     ok = scoper:add_scope(scope1),
     {_, #{}} = scoper_logger:keyfind(scope1),
-    ok = scoper:set_meta(#{key1 => dummy}),
+    ok = scoper:add_meta(#{key1 => dummy}),
     {_, #{key1 := dummy}} = scoper_logger:keyfind(scope1),
 
     ok = scoper:add_scope(scope2),
     {_, #{}} = scoper_logger:keyfind(scope2),
-    ok = scoper:set_meta(#{key2 => dummy}),
+    ok = scoper:add_meta(#{key2 => dummy}),
     {_, #{key2 := dummy}} = scoper_logger:keyfind(scope2),
 
-    ok = scoper:set_meta(#{key3 => dummy}, scope1),
+    ok = scoper:add_meta(#{key3 => dummy}, scope1),
     {_, #{key1 := dummy, key3 := dummy}} = scoper_logger:keyfind(scope1),
     {_, #{key2 := dummy}} = scoper_logger:keyfind(scope2),
 
-    ok = scoper:set_meta(#{key2 => not_so_dummy}),
+    ok = scoper:add_meta(#{key2 => not_so_dummy}),
     {_, #{key2 := not_so_dummy}} = scoper_logger:keyfind(scope2),
 
     ok = scoper:remove_meta([key2]),
@@ -154,10 +154,10 @@ play_with_meta(_C) ->
     false = scoper_logger:keyfind(scope2),
     {_, #{key1 := dummy}} = scoper_logger:keyfind(scope1),
 
-    ok = scoper:set_meta(#{key2 => dummy}),
+    ok = scoper:add_meta(#{key2 => dummy}),
     {_, #{key1 := dummy, key2 := dummy}} = scoper_logger:keyfind(scope1),
 
-    try scoper:set_meta(#{key4 => dummy}, scope2)
+    try scoper:add_meta(#{key4 => dummy}, scope2)
     catch
         error:badarg -> ok
     end,
@@ -165,7 +165,7 @@ play_with_meta(_C) ->
     scoper:remove_scope(),
     false = scoper_logger:keyfind(scope1),
 
-    try scoper:set_meta(#{dummy => dummy})
+    try scoper:add_meta(#{dummy => dummy})
     catch
         error:badarg -> ok
     end,

@@ -5,8 +5,8 @@
 -export([scope/3]).
 -export([add_scope/1]).
 -export([remove_scope/0]).
--export([set_meta/1]).
--export([set_meta/2]).
+-export([add_meta/1]).
+-export([add_meta/2]).
 -export([remove_meta/1]).
 -export([remove_meta/2]).
 -export([get_current_scope/0]).
@@ -38,7 +38,7 @@ scope(Name, Fun) ->
 scope(Name, Fun, Meta) ->
     try
         add_scope(Name),
-        set_meta(Meta),
+        add_meta(Meta),
         Fun()
     after
         remove_scope()
@@ -61,16 +61,16 @@ remove_scope() ->
             ok = set_scope_names(Rest)
     end.
 
--spec set_meta(meta()) ->
+-spec add_meta(meta()) ->
     ok.
-set_meta(Meta) ->
-    set_meta(Meta, get_current_scope()).
+add_meta(Meta) ->
+    add_meta(Meta, get_current_scope()).
 
--spec set_meta(meta(), scope_name()) ->
+-spec add_meta(meta(), scope_name()) ->
     ok.
-set_meta(Meta, _) when map_size(Meta) =:= 0 ->
+add_meta(Meta, _) when map_size(Meta) =:= 0 ->
     ok;
-set_meta(Meta, ScopeName) ->
+add_meta(Meta, ScopeName) ->
     case keyfind(ScopeName) of
         {ScopeName, ScopeMeta} ->
             keystore(ScopeName, maps:merge(ScopeMeta, Meta));

@@ -1,6 +1,7 @@
 -module(scoper_woody_event_handler).
 
--behaviour(woody_event_handler).
+%% Commented out to compile the module without woody
+%% -behaviour(woody_event_handler).
 
 %% woody_event_handler behaviour callbacks
 -export([handle_event/4]).

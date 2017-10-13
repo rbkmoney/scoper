@@ -30,10 +30,10 @@ rebar-update:
 	$(REBAR) update
 
 test: submodules
-	$(REBAR) ct
+	SCOPER_DEPS=true $(REBAR) ct
 
 xref: submodules
-	$(REBAR) xref
+	SCOPER_DEPS=true $(REBAR) as test xref
 
 clean:
 	$(REBAR) clean
@@ -43,7 +43,7 @@ distclean:
 	rm -rfv _build _builds _cache _steps _temp
 
 dialyze:
-	$(REBAR) dialyzer
+	SCOPER_DEPS=true $(REBAR) as test dialyzer
 
 lint:
 	elvis rock

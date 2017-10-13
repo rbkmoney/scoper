@@ -1,0 +1,12 @@
+case os:getenv("SCOPER_DEPS") of
+    false ->
+        CONFIG;
+    _ ->
+        [{application, scoper, Props}] = CONFIG,
+        {applications, Deps} = lists:keyfind(applications, 1, Props),
+        [{
+            application,
+            scoper,
+            lists:keystore(applications, 1, Props, {applications, Deps ++ [lager, woody]})
+        }]
+end.
