@@ -53,5 +53,4 @@ collect() ->
 %% Internal functions
 %%
 logger() ->
-    {ok, Logger} = application:get_env(scoper, logger),
-    Logger.
+    application:get_env(scoper, logger, scoper_logger_procdict).
