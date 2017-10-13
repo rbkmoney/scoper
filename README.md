@@ -17,7 +17,7 @@ Scoooper!
 * Add/remove scope metadata via [scoper](src/scoper.erl)`:add_meta/1,2` and [scoper](src/scoper.erl)`:remove_meta/1,2`
 * Use [lager](https://github.com/erlang-lager/lager) or just process dictionary (by default) as metadata storage.
 * Implement you own storage as [scoper_logger](src/scoper_logger.erl) behaviour.
-* Metadata storage is configured via apllication environment variale `logger`, which should name the module, implementing `scoper_logger` behaviour. E.g.:
+* Metadata storage is configured via apllication environment variale `logger`, which should name the module implementing `scoper_logger` behaviour. E.g.:
 
     ```erlang
     {scoper, [
@@ -25,7 +25,7 @@ Scoooper!
     ]}.
     ```
 
-* Enjoy tailored [scoper_woody_event_handler](src/scoper_woody_event_handler.erl). Configure sope names for woody client and server via woody_event_handler options (note, that scope name shoult be an _atom_):
+* Enjoy tailored [scoper_woody_event_handler](src/scoper_woody_event_handler.erl). Configure sope names for woody client and server via _woody_event_handler_ options (note, scope name should be an _atom_):
 
     ```erlang
     #{
@@ -35,4 +35,4 @@ Scoooper!
     ```
     Default values are `woody.client` and `woody.server`.
 
-> Note, if using `lager` metadata storage or/and `woody` event handler make sure to properly setup corresponding applications in your `app.src` file, since they are optional for `scoper` and not stated as it's dependancies.
+> Note, if using `lager` metadata storage or/and `woody` event handler make sure to properly setup corresponding applications in your `app.src` file, since they are optional for `scoper` and not stated as it's dependencies.
