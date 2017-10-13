@@ -29,7 +29,9 @@ build('scoper', 'docker-host', finalHook) {
       sh 'make wc_lint'
     }
     runStage('xref') {
-      sh 'make wc_xref'
+      withGithubPrivkey {
+        sh 'make wc_xref'
+      }
     }
     runStage('dialyze') {
       withWsCache("_build/default/rebar3_19.1_plt") {
