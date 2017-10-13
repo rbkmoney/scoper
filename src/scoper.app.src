@@ -5,7 +5,8 @@
     {applications, [
         kernel,
         stdlib,
-        lager, woody
+        lager,
+        woody
     ]},
     {env, []},
     {modules, []},

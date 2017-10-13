@@ -2,12 +2,11 @@
 
 -behaviour(scoper_logger).
 
-
 %% scoper_logger behaviour callbacks
 -export([keystore/2]).
 -export([keyfind/1]).
 -export([keydelete/1]).
--export([get_data/0]).
+-export([collect/0]).
 
 
 %%
@@ -29,7 +28,7 @@ keyfind(Key) ->
 keydelete(Key) ->
     lager:md(lists:keydelete(Key, 1, lager:md())).
 
--spec get_data() ->
-    scoper_logger:data().
-get_data() ->
+-spec collect() ->
+    scoper:data().
+collect() ->
     lager:md().

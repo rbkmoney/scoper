@@ -10,7 +10,7 @@
 -export([remove_meta/1]).
 -export([remove_meta/2]).
 -export([get_current_scope/0]).
--export([dump_meta/0]).
+-export([collect/0]).
 
 %% Types
 -type key()        :: atom().
@@ -18,7 +18,9 @@
 -type meta()       :: #{key() => value()}.
 -type scope_name() :: key().
 -type payload()    :: meta() | [scope_name()].
--export_type([key/0, value/0, meta/0, scope_name/0, payload/0]).
+-type data()       :: [{scoper:scope_name(), scoper:payload()}].
+
+-export_type([key/0, value/0, meta/0, scope_name/0, payload/0, data/0]).
 
 -define(TAG, scoper).
 
@@ -101,10 +103,10 @@ remove_meta(Keys, ScopeName) ->
 get_current_scope() ->
     hd(get_scope_names()).
 
--spec dump_meta() ->
-    [{scope_name(), meta()}].
-dump_meta() ->
-    lists:keydelete(?TAG, 1, scoper_logger:get_data()).
+-spec collect() ->
+    data().
+collect() ->
+    scoper_logger:collect().
 
 
 %%

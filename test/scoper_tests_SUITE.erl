@@ -180,7 +180,7 @@ play_with_meta(_C) ->
 %% Internal functions
 %%
 validate_scopes(State) ->
-    do_validate_scopes(State, scoper_logger:get_data()).
+    do_validate_scopes(State, scoper:collect()).
 
 do_validate_scopes([], []) ->
     ok;
