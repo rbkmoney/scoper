@@ -12,21 +12,21 @@
 %%
 %% scoper_logger behaviour callbacks
 %%
--spec keystore(scoper:key(), scoper:payload()) ->
+-spec keystore(scoper:scope_name(), scoper:payload()) ->
     ok.
-keystore(Key, Value) ->
-    lager:md(lists:keystore(Key, 1, lager:md(), {Key, Value})).
+keystore(ScopeName, Payload) ->
+    lager:md(lists:keystore(ScopeName, 1, lager:md(), {ScopeName, Payload})).
 
--spec keyfind(scoper:key()) ->
-    {scoper:key(), scoper:payload()} |
+-spec keyfind(scoper:scope_name()) ->
+    {scoper:scope_name(), scoper:payload()} |
     false.
-keyfind(Key) ->
-    lists:keyfind(Key, 1, lager:md()).
+keyfind(ScopeName) ->
+    lists:keyfind(ScopeName, 1, lager:md()).
 
--spec keydelete(scoper:key()) ->
+-spec keydelete(scoper:scope_name()) ->
     ok.
-keydelete(Key) ->
-    lager:md(lists:keydelete(Key, 1, lager:md())).
+keydelete(ScopeName) ->
+    lager:md(lists:keydelete(ScopeName, 1, lager:md())).
 
 -spec collect() ->
     scoper:data().

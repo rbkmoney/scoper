@@ -10,14 +10,14 @@
 %%
 %% Behaviour definition
 %%
--callback keystore(scoper:key(), scoper:payload()) ->
+-callback keystore(scoper:scope_name(), scoper:payload()) ->
     ok.
 
--callback keyfind(scoper:key()) ->
-    {scoper:key(), scoper:payload()} |
+-callback keyfind(scoper:scope_name()) ->
+    {scoper:scope_name(), scoper:payload()} |
     false.
 
--callback keydelete(scoper:key()) ->
+-callback keydelete(scoper:scope_name()) ->
     ok.
 
 -callback collect() ->
@@ -27,21 +27,21 @@
 %%
 %% API
 %%
--spec keystore(scoper:key(), scoper:payload()) ->
+-spec keystore(scoper:scope_name(), scoper:payload()) ->
     ok.
-keystore(Key, Value) ->
-    (logger()):keystore(Key, Value).
+keystore(ScopeName, Payload) ->
+    (logger()):keystore(ScopeName, Payload).
 
--spec keyfind(scoper:key()) ->
-    {scoper:key(), scoper:payload()} |
+-spec keyfind(scoper:scope_name()) ->
+    {scoper:scope_name(), scoper:payload()} |
     false.
-keyfind(Key) ->
-    (logger()):keyfind(Key).
+keyfind(ScopeName) ->
+    (logger()):keyfind(ScopeName).
 
--spec keydelete(scoper:key()) ->
+-spec keydelete(scoper:scope_name()) ->
     ok.
-keydelete(Key) ->
-    (logger()):keydelete(Key).
+keydelete(ScopeName) ->
+    (logger()):keydelete(ScopeName).
 
 -spec collect() ->
     scoper:data().

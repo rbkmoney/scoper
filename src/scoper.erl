@@ -128,18 +128,18 @@ get_scope_names() ->
 set_scope_names(Names) ->
     keystore(?TAG, Names).
 
--spec keystore(key(), payload()) ->
+-spec keystore(scope_name(), payload()) ->
     ok.
 keystore(Key, Value) ->
     scoper_logger:keystore(Key, Value).
 
--spec keyfind(key()) ->
-    {key(), payload()} |
+-spec keyfind(scope_name()) ->
+    {scope_name(), payload()} |
     false.
 keyfind(Key) ->
     scoper_logger:keyfind(Key).
 
--spec keydelete(key()) ->
+-spec keydelete(scope_name()) ->
     ok.
 keydelete(Key) ->
     scoper_logger:keydelete(Key).
