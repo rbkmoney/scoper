@@ -30,12 +30,12 @@ handle_event(Event, RpcID, RawMeta, Opts) ->
         fun() ->
             lager:log(
                 Level,
-                [{pid, self()}] ++ maps:to_list(RpcID) ++ scoper:collect(),
+                [{pid, self()}] ++ scoper:collect(),
                 Format,
                 Args
             )
         end,
-        Meta
+        maps:merge(Meta, rpc_id_to_map(RpcID))
     ).
 
 
@@ -50,3 +50,8 @@ get_scope(server, #{server_scope := ScopeName}) ->
     ScopeName;
 get_scope(server, _) ->
     'woody.server'.
+
+rpc_id_to_map(undefined) ->
+    #{};
+rpc_id_to_map(RpcID) ->
+    RpcID.
