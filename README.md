@@ -25,14 +25,11 @@ Scoooper!
     ]}.
     ```
 
-* Enjoy tailored [scoper_woody_event_handler](src/scoper_woody_event_handler.erl). Configure sope names for woody client and server via _woody_event_handler_ options (note, scope name should be an _atom_):
+* Enjoy tailored [scoper_woody_event_handler](src/scoper_woody_event_handler.erl). Configure scope name for woody client/server via _woody_event_handler_ options (note, scope name should be an _atom_):
 
     ```erlang
-    #{
-        client_scope => 'my_client_scope',
-        server_scope => 'my_server_scope'
-    }
+    #{log_scope => 'my_log_scope'}
     ```
-    Default values are `woody.client` and `woody.server`.
+    Default values for client and server are `woody.client` and `woody.server`.
 
 > Note, if using `lager` metadata storage or/and `woody` event handler make sure to properly setup corresponding applications in your `app.src` file, since they are optional for `scoper` and not stated as it's dependencies.

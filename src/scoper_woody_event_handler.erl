@@ -62,12 +62,10 @@ handle_event(Event, RpcID, RawMeta) ->
     ok = scoper:add_meta(maps:merge(Meta, rpc_id_to_map(RpcID))),
     lager:log(Level, [{pid, self()}] ++ scoper:collect(), Format, Args).
 
-get_scope_name(client, #{client_scope := ScopeName}) ->
+get_scope_name(_, #{log_scope := ScopeName}) ->
     ScopeName;
 get_scope_name(client, _) ->
     'woody.client';
-get_scope_name(server, #{server_scope := ScopeName}) ->
-    ScopeName;
 get_scope_name(server, _) ->
     'woody.server'.
 
