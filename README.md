@@ -17,7 +17,7 @@ Scoooper!
 * Add/remove scope metadata via [scoper](src/scoper.erl)`:add_meta/1,2` and [scoper](src/scoper.erl)`:remove_meta/1,2`
 * Use [lager](https://github.com/erlang-lager/lager) or just process dictionary (by default) as metadata storage.
 * Implement you own storage as [scoper_logger](src/scoper_logger.erl) behaviour.
-* Metadata storage is configured via apllication environment variale `logger`, which should name the module implementing `scoper_logger` behaviour. E.g.:
+* Metadata storage is configured via application environment variable `logger`, which should name the module implementing `scoper_logger` behaviour. E.g.:
 
     ```erlang
     {scoper, [
