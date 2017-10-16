@@ -39,7 +39,8 @@ Scoooper!
 * Enjoy tailored [scoper_woody_event_handler](src/scoper_woody_event_handler.erl). Configure scope name for woody client/server via _woody_event_handler_ options (note, scope name should be an _atom_):
 
     ```erlang
-    #{log_scope => 'my_log_scope'}
+    %% woody client or server config
+    event_handler => {scoper_woody_event_handler, #{log_scope => 'my_log_scope'}}
     ```
     Default values for client and server are `woody.client` and `woody.server`.
 
