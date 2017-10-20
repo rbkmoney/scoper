@@ -6,21 +6,17 @@
 -export([add_scope/1]).
 -export([remove_scope/0]).
 -export([add_meta/1]).
--export([add_meta/2]).
 -export([remove_meta/1]).
--export([remove_meta/2]).
 -export([get_current_scope/0]).
 -export([collect/0]).
 
 %% Types
--type key()        :: atom().
--type value()      :: any().
--type meta()       :: #{key() => value()}.
--type scope_name() :: key().
--type payload()    :: meta() | [scope_name()].
--type data()       :: [{scoper:scope_name(), scoper:payload()}].
+-type scope() :: scoper_storage:scope().
+-type meta()  :: scoper_storage:meta().
+-type key()   :: scoper_storage:key().
+-type data()  :: scoper_storage:data().
 
--export_type([key/0, value/0, meta/0, scope_name/0, payload/0, data/0]).
+-export_type([key/0, meta/0, scope/0, data/0]).
 
 -define(TAG, scoper).
 
@@ -28,14 +24,14 @@
 %%
 %% API
 %%
--spec scope(scope_name(), fun()) ->
+-spec scope(scope(), fun()) ->
     _.
 scope(Name, Fun) ->
-    scope(Name, Fun, #{}).
+    scope(Name, #{}, Fun).
 
--spec scope(scope_name(), fun(), meta()) ->
+-spec scope(scope(), meta(), fun()) ->
     _.
-scope(Name, Fun, Meta) ->
+scope(Name, Meta, Fun) ->
     try
         add_scope(Name),
         add_meta(Meta),
@@ -44,11 +40,11 @@ scope(Name, Fun, Meta) ->
         remove_scope()
     end.
 
--spec add_scope(scope_name()) ->
+-spec add_scope(scope()) ->
     ok.
 add_scope(Name) ->
     set_scope_names([Name | get_scope_names()]),
-    keystore(Name, #{}).
+    store(Name, #{}).
 
 -spec remove_scope() ->
     ok.
@@ -57,89 +53,74 @@ remove_scope() ->
         [] ->
             ok;
         [Current | Rest] ->
-            ok = keydelete(Current),
+            ok = delete(Current),
             ok = set_scope_names(Rest)
     end.
 
 -spec add_meta(meta()) ->
     ok.
-add_meta(Meta) ->
-    add_meta(Meta, get_current_scope()).
-
--spec add_meta(meta(), scope_name()) ->
-    ok.
-add_meta(Meta, _) when map_size(Meta) =:= 0 ->
+add_meta(Meta) when map_size(Meta) =:= 0 ->
     ok;
-add_meta(Meta, ScopeName) ->
-    case keyfind(ScopeName) of
-        {ScopeName, ScopeMeta} ->
-            keystore(ScopeName, maps:merge(ScopeMeta, Meta));
-        false ->
-            erlang:error(badarg, [Meta, ScopeName])
+add_meta(Meta) ->
+    ScopeName = get_current_scope(),
+    case find(ScopeName) of
+        undefined ->
+            erlang:error(badarg, [Meta, ScopeName]);
+        ScopeMeta ->
+            store(ScopeName, maps:merge(ScopeMeta, Meta))
     end.
 
 -spec remove_meta([key()]) ->
     ok.
 remove_meta(Keys) ->
-    remove_meta(Keys, get_current_scope()).
-
--spec remove_meta([key()], scope_name()) ->
-    ok.
-remove_meta(Keys, ScopeName) ->
-    case keyfind(ScopeName) of
-        {ScopeName, ScopeMeta} ->
-            keystore(ScopeName, maps:filter(
-                fun(K, _V) ->
-                    not lists:member(K, Keys)
-                end,
-                ScopeMeta
-            ));
-        false ->
-            ok
+    ScopeName = get_current_scope(),
+    case find(ScopeName) of
+        undefined ->
+            ok;
+        ScopeMeta ->
+            store(ScopeName, maps:without(Keys, ScopeMeta))
     end.
 
 -spec get_current_scope() ->
-    scope_name().
+    scope().
 get_current_scope() ->
     hd(get_scope_names()).
 
 -spec collect() ->
     data().
 collect() ->
-    scoper_logger:collect().
+    scoper_storage:collect().
 
 
 %%
 %% Internal functions
 %%
 -spec get_scope_names() ->
-    [scope_name()].
+    [scope()].
 get_scope_names() ->
-    case keyfind(?TAG) of
-        {?TAG, Scopes} ->
-            Scopes;
-        false ->
-            keystore(?TAG, []),
-            []
+    case find(?TAG) of
+        undefined ->
+            [];
+        Scopes ->
+            Scopes
     end.
 
--spec set_scope_names([scope_name()]) ->
+-spec set_scope_names([scope()]) ->
     ok.
 set_scope_names(Names) ->
-    keystore(?TAG, Names).
+    store(?TAG, Names).
 
--spec keystore(scope_name(), payload()) ->
+-spec store(scope(), scoper_storage:payload()) ->
     ok.
-keystore(Key, Value) ->
-    scoper_logger:keystore(Key, Value).
+store(Key, Value) ->
+    scoper_storage:store(Key, Value).
 
--spec keyfind(scope_name()) ->
-    {scope_name(), payload()} |
-    false.
-keyfind(Key) ->
-    scoper_logger:keyfind(Key).
+-spec find(scope()) ->
+    scoper_storage:payload() | undefined.
+find(Key) ->
+    scoper_storage:find(Key).
 
--spec keydelete(scope_name()) ->
+-spec delete(scope()) ->
     ok.
-keydelete(Key) ->
-    scoper_logger:keydelete(Key).
+delete(Key) ->
+    scoper_storage:delete(Key).

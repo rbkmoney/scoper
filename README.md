@@ -14,34 +14,31 @@ Scoooper!
 ```
 
 ## Usage
-* Scope log metadata along the call stack, wrapping functions in [scoper](src/scoper.erl)`:scope/2,3`.
-* _Scope name_ should be an atom, _metadata_ is a map with atom keys. The types (from [scoper](src/scoper.erl)):
+* Scope log metadata along the process call stack, wrapping functions in [scoper](src/scoper.erl)`:scope/2,3`. _Scope name_ should be an atom, _metadata_ is a map with atom keys. The types:
 
     ```erlang
-    -type key()        :: atom().
-    -type value()      :: any().
-    -type meta()       :: #{key() => value()}.
-    -type scope_name() :: key().
-
+    -type key()   :: atom().
+    -type value() :: any().
+    -type meta()  :: #{key() => value()}.
+    -type scope() :: key().
     ```
 
-* Add/remove scope metadata via [scoper](src/scoper.erl)`:add_meta/1,2` and [scoper](src/scoper.erl)`:remove_meta/1,2`
+* Add/remove scope metadata via [scoper](src/scoper.erl)`:add_meta/1` and [scoper](src/scoper.erl)`:remove_meta/1`
 * Use [lager](https://github.com/erlang-lager/lager) or just process dictionary (by default) as metadata storage.
-* Implement your own storage as [scoper_logger](src/scoper_logger.erl) behaviour.
-* Metadata storage is configured via application environment variable `logger`, which should name the module implementing `scoper_logger` behaviour. E.g.:
+* Implement your own storage as [scoper_storage](src/scoper_storage.erl) behaviour. Metadata storage is configured via application environment variable `storage`, which should name the module implementing `scoper_storage` behaviour. E.g.:
 
     ```erlang
     {scoper, [
-        {logger, scoper_logger_lager}
+        {storage, scoper_storage_lager}
     ]}.
     ```
 
-* Enjoy tailored [scoper_woody_event_handler](src/scoper_woody_event_handler.erl). Configure scope name for woody client/server via _woody_event_handler_ options (note, scope name should be an _atom_):
+* Enjoy tailored [scoper_woody_event_handler](src/scoper_woody_event_handler.erl):
 
     ```erlang
     %% woody client or server config
-    event_handler => {scoper_woody_event_handler, #{log_scope => 'my_log_scope'}}
+    event_handler => scoper_woody_event_handler,
     ```
-    Default values for client and server are `woody.client` and `woody.server`.
+    Scope names for woody client and server are: `rpc.client` and `rpc.server`.
 
-> Note, if using `lager` metadata storage or/and `woody` event handler make sure to properly setup corresponding applications in your `app.src` file, since they are optional for `scoper` and not stated as it's dependencies.
+> Note, if using `lager` metadata storage or/and `woody` event handler make sure to properly setup corresponding applications in your `app.src` file, since they are optional for `scoper` and not configured as it's application dependencies.

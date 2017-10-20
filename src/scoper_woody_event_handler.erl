@@ -19,16 +19,16 @@ when
     Opts  :: woody:options().
 
 %% client scoping
-handle_event(Event = 'call service', RpcID, RawMeta, Opts) ->
-    ok = scoper:add_scope(get_scope_name(client, Opts)),
+handle_event(Event = 'call service', RpcID, RawMeta, _Opts) ->
+    ok = scoper:add_scope(get_scope_name(client)),
     handle_event(Event, RpcID, RawMeta);
 handle_event(Event = 'service result', RpcID, RawMeta, _Opts) ->
     _ = handle_event(Event, RpcID, RawMeta),
     scoper:remove_scope();
 
 %% server scoping
-handle_event(Event = 'server receive', RpcID, RawMeta, Opts) ->
-    ok = scoper:add_scope(get_scope_name(server, Opts)),
+handle_event(Event = 'server receive', RpcID, RawMeta, _Opts) ->
+    ok = scoper:add_scope(get_scope_name(server)),
     handle_event(Event, RpcID, RawMeta);
 handle_event(Event = 'server send', RpcID, RawMeta, _Opts) ->
     _ = handle_event(Event, RpcID, RawMeta),
@@ -38,9 +38,9 @@ handle_event(Event = 'server send', RpcID, RawMeta, _Opts) ->
 handle_event(Event = 'internal error', RpcID, RawMeta, _Opts) ->
     _ = handle_event(Event, RpcID, RawMeta),
     final_error_cleanup(RawMeta);
-handle_event(Event = 'trace event', RpcID, RawMeta, Opts) ->
+handle_event(Event = 'trace event', RpcID, RawMeta = #{role := Role}, _Opts) ->
     scoper:scope(
-        get_scope_name(server, Opts),
+        get_scope_name(Role),
         fun() -> handle_event(Event, RpcID, RawMeta) end
     );
 
@@ -57,22 +57,20 @@ handle_event(Event, RpcID, RawMeta) ->
         Event,
         RawMeta,
         RpcID,
-        [role, event, service, function, type, metadata, url]
+        [event, service, service_schema, function, type, metadata, url]
     ),
-    ok = scoper:add_meta(maps:merge(Meta, rpc_id_to_map(RpcID))),
-    lager:log(Level, [{pid, self()}] ++ scoper:collect(), Format, Args).
+    ok = scoper:add_meta(Meta),
+    lager:log(Level, [{pid, self()}] ++ format_rpc_id(RpcID) ++ lager:md(), Format, Args).
 
-get_scope_name(_, #{log_scope := ScopeName}) ->
-    ScopeName;
-get_scope_name(client, _) ->
-    'woody.client';
-get_scope_name(server, _) ->
-    'woody.server'.
+get_scope_name(client) ->
+    'rpc.client';
+get_scope_name(server) ->
+    'rpc.server'.
 
-rpc_id_to_map(undefined) ->
-    #{};
-rpc_id_to_map(RpcID) ->
-    RpcID.
+format_rpc_id(undefined) ->
+    [];
+format_rpc_id(RpcID) ->
+    maps:to_list(RpcID).
 
 final_error_cleanup(#{role := server, error := _, final := true}) ->
     scoper:remove_scope();

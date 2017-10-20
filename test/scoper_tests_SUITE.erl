@@ -61,35 +61,25 @@ init_per_suite(C) ->
 -spec end_per_suite(config()) ->
     any().
 end_per_suite(C) ->
-    [application_stop(App) || App <- proplists:get_value(apps, C)].
-
-application_stop(App=sasl) ->
-    %% hack for preventing sasl deadlock
-    %% http://erlang.org/pipermail/erlang-questions/2014-May/079012.html
-    error_logger:delete_report_handler(cth_log_redirect),
-    application:stop(App),
-    error_logger:add_report_handler(cth_log_redirect),
-    ok;
-application_stop(App) ->
-    application:stop(App).
+    [application:stop(App) || App <- proplists:get_value(apps, C)].
 
 -spec init_per_group(group_name(), config()) ->
     config().
 
 init_per_group(procdict, C) ->
-    init_group(scoper_logger_procdict, C);
+    init_group(scoper_storage_procdict, C);
 init_per_group(lager, C) ->
-    init_group(scoper_logger_lager, C).
+    init_group(scoper_storage_lager, C).
 
 init_group(Logger, C) ->
-    ok = application:set_env(scoper, logger, Logger),
-    [{scoper_logger, Logger} | C].
+    ok = application:set_env(scoper, storage, Logger),
+    [{scoper_storage, Logger} | C].
 
 -spec end_per_group(group_name(), config()) ->
-    config().
+    _.
 end_per_group(_, C) ->
-    application:unset_env(scoper, logger),
-    lists:keydelete(scoper_logger, 1, C).
+    application:unset_env(scoper, storage),
+    lists:keydelete(scoper_storage, 1, C).
 
 
 %%
@@ -101,70 +91,74 @@ scope_ok(_C) ->
     scope_ok_test([scope1, scope2, scope3], []).
 
 scope_ok_test([], State) ->
-    ok = validate_scopes(State);
+    ok = 'match_scope_meta_and_scope_state'(State);
 scope_ok_test([Scope | T], State) ->
-    ok = validate_scopes(State),
-    NewState = [Scope | State],
+    ok = 'match_scope_meta_and_scope_state'(State),
+    ScopeState = [Scope | State],
     scoper:scope(
         Scope,
-        fun() -> scope_ok_test(T, NewState) end,
-        #{scopes => NewState}
+        #{scopes => ScopeState},
+        fun() -> scope_ok_test(T, ScopeState) end
     ),
-    ok = validate_scopes(State).
+    ok = 'match_scope_meta_and_scope_state'(State).
 
 -spec play_with_meta(config()) ->
     ok.
 play_with_meta(_C) ->
-    try scoper:add_meta(#{dummy => dummy}, scope1)
+
+    %% Try to operate on non initilized scopes
+    try scoper:add_meta(#{dummy => dummy})
+    catch
+        error:badarg -> ok
+    end,
+    try scoper:remove_meta(dummy)
     catch
         error:badarg -> ok
     end,
 
-    try scoper:remove_meta(dummy, scope1)
-    catch
-        error:badarg -> ok
-    end,
+    %% Create scope1 and add key1
+    ok               = scoper:add_scope(scope1),
+    #{}              = find(scope1),
+    ok               = scoper:add_meta(#{key1 => dummy}),
+    #{key1 := dummy} = find(scope1),
 
-    ok = scoper:add_scope(scope1),
-    {_, #{}} = scoper_logger:keyfind(scope1),
-    ok = scoper:add_meta(#{key1 => dummy}),
-    {_, #{key1 := dummy}} = scoper_logger:keyfind(scope1),
+    %% Create scope2 and add key2
+    ok               = scoper:add_scope(scope2),
+    #{}              = find(scope2),
+    ok               = scoper:add_meta(#{key2 => dummy}),
+    #{key2 := dummy} = find(scope2),
 
-    ok = scoper:add_scope(scope2),
-    {_, #{}} = scoper_logger:keyfind(scope2),
-    ok = scoper:add_meta(#{key2 => dummy}),
-    {_, #{key2 := dummy}} = scoper_logger:keyfind(scope2),
+    %% Update key2 in scope2
+    ok                      = scoper:add_meta(#{key2 => not_so_dummy}),
+    #{key2 := not_so_dummy} = find(scope2),
 
-    ok = scoper:add_meta(#{key3 => dummy}, scope1),
-    {_, #{key1 := dummy, key3 := dummy}} = scoper_logger:keyfind(scope1),
-    {_, #{key2 := dummy}} = scoper_logger:keyfind(scope2),
+    %% No key1 in scope2
+    undefined = maps:get(key1, find(scope2), undefined),
 
-    ok = scoper:add_meta(#{key2 => not_so_dummy}),
-    {_, #{key2 := not_so_dummy}} = scoper_logger:keyfind(scope2),
+    %% Add key1 to scope2
+    ok = scoper:add_meta(#{key1 => smart}),
+    #{key1 := dummy} = find(scope1),
+    #{key1 := smart} = find(scope2),
 
-    ok = scoper:remove_meta([key2]),
-    {_, Meta} = scoper_logger:keyfind(scope2),
-    undefined = maps:get(get, Meta, undefined),
+    %% Remove key1 from scope2
+    ok               = scoper:remove_meta([key1]),
+    #{key1 := dummy} = find(scope1),
+    undefined        = maps:get(key1, find(scope2), undefined),
 
-    ok = scoper:remove_meta([key3], scope1),
-    {_, Meta1} = scoper_logger:keyfind(scope1),
-    undefined = maps:get(get, Meta1, undefined),
-
+    %% Remove scope2, now in scope1
     scoper:remove_scope(),
-    false = scoper_logger:keyfind(scope2),
-    {_, #{key1 := dummy}} = scoper_logger:keyfind(scope1),
+    undefined = find(scope2),
+    #{key1 := dummy}                = find(scope1),
 
-    ok = scoper:add_meta(#{key2 => dummy}),
-    {_, #{key1 := dummy, key2 := dummy}} = scoper_logger:keyfind(scope1),
+    %% Add key2 to scope1
+    ok                              = scoper:add_meta(#{key2 => dummy}),
+    #{key1 := dummy, key2 := dummy} = find(scope1),
 
-    try scoper:add_meta(#{key4 => dummy}, scope2)
-    catch
-        error:badarg -> ok
-    end,
-
+    %% Remove scope1, no scopes left
     scoper:remove_scope(),
-    false = scoper_logger:keyfind(scope1),
+    undefined = find(scope1),
 
+    %% Try to operate when no scopes are there
     try scoper:add_meta(#{dummy => dummy})
     catch
         error:badarg -> ok
@@ -175,27 +169,27 @@ play_with_meta(_C) ->
         error:badarg -> ok
     end.
 
-
 %%
 %% Internal functions
 %%
-validate_scopes(State) ->
-    do_validate_scopes(State, scoper:collect()).
+'match_scope_meta_and_scope_state'(State) ->
+    'match_scope_meta_and_scope_state'(State, scoper:collect()).
 
-do_validate_scopes([], []) ->
+'match_scope_meta_and_scope_state'([], #{}) ->
     ok;
-do_validate_scopes(State, RawData) ->
-    {value, {?TAG, State}, RawMeta} = lists:keytake(?TAG, 1, RawData),
-    ok = validate_scope_meta(State, RawMeta).
-
-validate_scope_meta(State, Metadata) ->
+'match_scope_meta_and_scope_state'(State, Data = #{?TAG := State}) ->
     lists:foldr(
         fun(Scope, Acc) ->
-            Acc1 = [Scope | Acc],
-            {Scope, #{scopes := Acc1}} = lists:keyfind(Scope, 1, Metadata),
-            Acc1
+            'scope_meta=:=scoper_state'(Scope, [Scope | Acc], Data)
         end,
         [],
         State
     ),
     ok.
+
+'scope_meta=:=scoper_state'(Scope, State, Meta) ->
+    #{scopes := State} = maps:get(Scope, Meta),
+    State.
+
+find(Key) ->
+    maps:get(Key, scoper:collect(), undefined).
