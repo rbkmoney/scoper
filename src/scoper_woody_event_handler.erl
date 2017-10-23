@@ -23,7 +23,7 @@ handle_event(Event = 'call service', RpcID, RawMeta, _Opts) ->
     ok = scoper:add_scope(get_scope_name(client)),
     handle_event(Event, RpcID, RawMeta);
 handle_event(Event = 'service result', RpcID, RawMeta, _Opts) ->
-    _ = handle_event(Event, RpcID, RawMeta),
+    ok = handle_event(Event, RpcID, RawMeta),
     scoper:remove_scope();
 
 %% server scoping
@@ -32,7 +32,7 @@ handle_event(Event = 'server receive', RpcID, RawMeta, _Opts) ->
     handle_event(Event, RpcID, RawMeta);
 handle_event(Event = 'server send', RpcID, RawMeta, _Opts) ->
     _ = handle_event(Event, RpcID, RawMeta),
-    scoper:remove_scope();
+    cleanup_server_meta();
 
 %% special cases
 handle_event(Event = 'internal error', RpcID, RawMeta, _Opts) ->
@@ -52,27 +52,56 @@ handle_event(Event, RpcID, RawMeta, _Opts) ->
 %%
 %% Internal functions
 %%
-handle_event(Event, RpcID, RawMeta) ->
+handle_event(Event, RpcID, RawMeta = #{role := Role}) ->
     {Level, {Format, Args}, Meta} = woody_event_handler:format_event_and_meta(
         Event,
         RawMeta,
         RpcID,
-        [event, service, service_schema, function, type, metadata, url]
+        [event, service, function, type, metadata, url]
     ),
     ok = scoper:add_meta(Meta),
-    lager:log(Level, [{pid, self()}] ++ format_rpc_id(RpcID) ++ lager:md(), Format, Args).
+    lager:log(Level, [{pid, self()}] ++ collect_md(Role, RpcID), Format, Args).
 
 get_scope_name(client) ->
     'rpc.client';
 get_scope_name(server) ->
     'rpc.server'.
 
-format_rpc_id(undefined) ->
-    [];
-format_rpc_id(RpcID) ->
-    maps:to_list(RpcID).
+collect_md(client, RpcID) ->
+    add_rpc_id(RpcID, lager:md());
+collect_md(server, RpcID) ->
+    lager:md(add_rpc_id(RpcID, lager:md())).
+
+cleanup_server_meta() ->
+    ok = scoper:remove_scope(),
+    remove_rpc_id().
+
+add_rpc_id(undefined, MD) ->
+    MD;
+add_rpc_id(RpcID, MD) ->
+    maps:fold(
+        fun(K, V, Acc) -> lists:keystore(K, 1, Acc, {K, V}) end,
+        MD,
+        RpcID
+    ).
+
+remove_rpc_id() ->
+    lager:md(lists:filtermap(
+        fun({Key, _}) when
+            Key =:= span_id  orelse
+            Key =:= trace_id orelse
+            Key =:= parent_id
+        ->
+            false;
+          (_)
+        ->
+            true
+        end,
+        lager:md()
+    )).
 
 final_error_cleanup(#{role := server, error := _, final := true}) ->
-    scoper:remove_scope();
+    cleanup_server_meta();
 final_error_cleanup(_) ->
     ok.
+
