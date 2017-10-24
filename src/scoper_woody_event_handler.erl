@@ -62,6 +62,14 @@ handle_event(Event, RpcID, RawMeta = #{role := Role}) ->
     ok = scoper:add_meta(Meta),
     lager:log(Level, collect_md(Role, RpcID), Format, Args).
 
+%% Log metadata should contain rpc ID properties (trace_id, span_id and parent_id)
+%% _on the top level_ according to the requirements.
+%% In order to add rpc ID to log messages from woody handler, it is stored
+%% in lager:md() in case of woody server. Since woody client can be invoked during
+%% processing of parent request by a woody server handler, rpc ID of the child request
+%% is added directly to the log meta before logging. It is _not stored_ in lager:md()
+%% in that case, so child rpc ID does not override parent rpc ID
+%% for the server handler processing context.
 collect_md(client, RpcID) ->
     collect_md(add_rpc_id(RpcID, lager:md()));
 collect_md(server, _RpcID) ->
@@ -99,14 +107,9 @@ add_rpc_id(RpcID, MD) ->
 
 remove_rpc_id(MD) ->
     lists:filtermap(
-        fun({Key, _}) when
-            Key =:= span_id  orelse
-            Key =:= trace_id orelse
-            Key =:= parent_id
-        ->
-            false;
-           (_)
-        ->
+        fun({Key, _}) ->
+            Key =/= span_id andalso Key =/= trace_id andalso Key =/= parent_id;
+           (_) ->
             true
         end,
         MD

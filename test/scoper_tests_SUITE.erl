@@ -10,7 +10,7 @@
 
 
 -export([
-    scope_ok/1,
+    mirror_scoper_state_in_meta/1,
     play_with_meta/1
 ]).
 
@@ -39,11 +39,11 @@ all() ->
 groups() ->
     [
         {procdict, [sequence], [
-            scope_ok,
+            mirror_scoper_state_in_meta,
             play_with_meta
         ]},
         {lager, [sequence], [
-            scope_ok,
+            mirror_scoper_state_in_meta,
             play_with_meta
         ]}
     ].
@@ -85,20 +85,20 @@ end_per_group(_, C) ->
 %%
 %% Tests
 %%
--spec scope_ok(config()) ->
+-spec mirror_scoper_state_in_meta(config()) ->
     ok.
-scope_ok(_C) ->
-    scope_ok_test([scope1, scope2, scope3], []).
+mirror_scoper_state_in_meta(_C) ->
+    mirror_scoper_state_in_meta([scope1, scope2, scope3], []).
 
-scope_ok_test([], State) ->
+mirror_scoper_state_in_meta([], State) ->
     ok = 'match_scope_meta_and_scope_state'(State);
-scope_ok_test([Scope | T], State) ->
+mirror_scoper_state_in_meta([Scope | T], State) ->
     ok = 'match_scope_meta_and_scope_state'(State),
     ScopeState = [Scope | State],
     scoper:scope(
         Scope,
         #{scopes => ScopeState},
-        fun() -> scope_ok_test(T, ScopeState) end
+        fun() -> mirror_scoper_state_in_meta(T, ScopeState) end
     ),
     ok = 'match_scope_meta_and_scope_state'(State).
 
