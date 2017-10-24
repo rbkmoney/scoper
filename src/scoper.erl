@@ -4,6 +4,7 @@
 -export([scope/2]).
 -export([scope/3]).
 -export([add_scope/1]).
+-export([add_scope/2]).
 -export([remove_scope/0]).
 -export([add_meta/1]).
 -export([remove_meta/1]).
@@ -33,8 +34,7 @@ scope(Name, Fun) ->
     _.
 scope(Name, Meta, Fun) ->
     try
-        add_scope(Name),
-        add_meta(Meta),
+        add_scope(Name, Meta),
         Fun()
     after
         remove_scope()
@@ -43,8 +43,19 @@ scope(Name, Meta, Fun) ->
 -spec add_scope(scope()) ->
     ok.
 add_scope(Name) ->
-    set_scope_names([Name | get_scope_names()]),
-    store(Name, #{}).
+    add_scope(Name, #{}).
+
+-spec add_scope(scope(), meta()) ->
+    ok.
+add_scope(Name, Meta) ->
+    Scopes = get_scope_names(),
+    case lists:member(Name, Scopes) of
+        true ->
+            erlang:error(scopename_taken);
+        false ->
+            set_scope_names([Name | Scopes]),
+            store(Name, Meta)
+    end.
 
 -spec remove_scope() ->
     ok.
@@ -63,28 +74,23 @@ add_meta(Meta) when map_size(Meta) =:= 0 ->
     ok;
 add_meta(Meta) ->
     ScopeName = get_current_scope(),
-    case find(ScopeName) of
-        undefined ->
-            erlang:error(badarg, [Meta, ScopeName]);
-        ScopeMeta ->
-            store(ScopeName, maps:merge(ScopeMeta, Meta))
-    end.
+    store(ScopeName, maps:merge(find(ScopeName), Meta)).
 
 -spec remove_meta([key()]) ->
     ok.
 remove_meta(Keys) ->
     ScopeName = get_current_scope(),
-    case find(ScopeName) of
-        undefined ->
-            ok;
-        ScopeMeta ->
-            store(ScopeName, maps:without(Keys, ScopeMeta))
-    end.
+    store(ScopeName, maps:without(Keys, find(ScopeName))).
 
 -spec get_current_scope() ->
     scope().
 get_current_scope() ->
-    hd(get_scope_names()).
+    case get_scope_names() of
+        [] ->
+            erlang:error(no_scopes);
+        Scopes ->
+            hd(Scopes)
+    end.
 
 -spec collect() ->
     data().

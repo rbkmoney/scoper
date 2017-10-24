@@ -21,6 +21,15 @@
 
 -define(TAG, scoper).
 
+-define(assert_exc(Class, Reason, Fun),
+    try
+        Fun,
+        erlang:error(assertion_failed)
+    catch
+        Class:Reason ->
+            ok
+    end
+).
 
 %%
 %% Tests descriptions
@@ -105,16 +114,9 @@ mirror_scoper_state_in_meta([Scope | NextScopes], State) ->
 -spec play_with_meta(config()) ->
     ok.
 play_with_meta(_C) ->
-
     %% Try to operate on non initilized scopes
-    try scoper:add_meta(#{dummy => dummy})
-    catch
-        error:badarg -> ok
-    end,
-    try scoper:remove_meta(dummy)
-    catch
-        error:badarg -> ok
-    end,
+    ?assert_exc(error, no_scopes, scoper:add_meta(#{dummy => dummy})),
+    ?assert_exc(error, no_scopes, scoper:remove_meta(dummy)),
 
     %% Create scope1 and add key1
     ok               = scoper:add_scope(scope1),
@@ -123,9 +125,8 @@ play_with_meta(_C) ->
     #{key1 := dummy} = find(scope1),
 
     %% Create scope2 and add key2
-    ok               = scoper:add_scope(scope2),
+    ok               = scoper:add_scope(scope2, #{key2 => dummy}),
     #{}              = find(scope2),
-    ok               = scoper:add_meta(#{key2 => dummy}),
     #{key2 := dummy} = find(scope2),
 
     %% Update key2 in scope2
@@ -145,6 +146,10 @@ play_with_meta(_C) ->
     #{key1 := dummy} = find(scope1),
     undefined        = maps:get(key1, find(scope2), undefined),
 
+    %% Try to create scope1 and scope2 again
+    ?assert_exc(error, scopename_taken, scoper:add_scope(scope1)),
+    ?assert_exc(error, scopename_taken, scoper:add_scope(scope2)),
+
     %% Remove scope2, now in scope1
     scoper:remove_scope(),
     undefined        = find(scope2),
@@ -159,15 +164,8 @@ play_with_meta(_C) ->
     undefined = find(scope1),
 
     %% Try to operate when no scopes are there
-    try scoper:add_meta(#{dummy => dummy})
-    catch
-        error:badarg -> ok
-    end,
-
-    try scoper:remove_meta([dummy])
-    catch
-        error:badarg -> ok
-    end.
+    ?assert_exc(error, no_scopes, scoper:add_meta(#{dummy => dummy})),
+    ?assert_exc(error, no_scopes, scoper:remove_meta(dummy)).
 
 %%
 %% Internal functions
