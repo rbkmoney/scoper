@@ -106,11 +106,12 @@ add_rpc_id(RpcID, MD) ->
     ).
 
 remove_rpc_id(MD) ->
-    lists:filtermap(
-        fun({Key, _}) ->
-            Key =/= span_id andalso Key =/= trace_id andalso Key =/= parent_id;
-           (_) ->
-            true
+    lists:filter(
+        fun
+            ({Key, _}) ->
+                Key =/= span_id andalso Key =/= trace_id andalso Key =/= parent_id;
+            (_) ->
+                true
         end,
         MD
     ).
