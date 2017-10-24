@@ -91,16 +91,16 @@ mirror_scoper_state_in_meta(_C) ->
     mirror_scoper_state_in_meta([scope1, scope2, scope3], []).
 
 mirror_scoper_state_in_meta([], State) ->
-    ok = 'match_scope_meta_and_scope_state'(State);
-mirror_scoper_state_in_meta([Scope | T], State) ->
-    ok = 'match_scope_meta_and_scope_state'(State),
-    ScopeState = [Scope | State],
+    ok = match_scoper_state_and_meta(State);
+mirror_scoper_state_in_meta([Scope | NextScopes], State) ->
+    ok = match_scoper_state_and_meta(State),
+    NextState = [Scope | State],
     scoper:scope(
         Scope,
-        #{scopes => ScopeState},
-        fun() -> mirror_scoper_state_in_meta(T, ScopeState) end
+        #{scopes => NextState},
+        fun() -> mirror_scoper_state_in_meta(NextScopes, NextState) end
     ),
-    ok = 'match_scope_meta_and_scope_state'(State).
+    ok = match_scoper_state_and_meta(State).
 
 -spec play_with_meta(config()) ->
     ok.
@@ -147,8 +147,8 @@ play_with_meta(_C) ->
 
     %% Remove scope2, now in scope1
     scoper:remove_scope(),
-    undefined = find(scope2),
-    #{key1 := dummy}                = find(scope1),
+    undefined        = find(scope2),
+    #{key1 := dummy} = find(scope1),
 
     %% Add key2 to scope1
     ok                              = scoper:add_meta(#{key2 => dummy}),
@@ -172,22 +172,22 @@ play_with_meta(_C) ->
 %%
 %% Internal functions
 %%
-'match_scope_meta_and_scope_state'(State) ->
-    'match_scope_meta_and_scope_state'(State, scoper:collect()).
+match_scoper_state_and_meta(State) ->
+    match_scoper_state_and_meta(State, scoper:collect()).
 
-'match_scope_meta_and_scope_state'([], #{}) ->
+match_scoper_state_and_meta([], #{}) ->
     ok;
-'match_scope_meta_and_scope_state'(State, Data = #{?TAG := State}) ->
+match_scoper_state_and_meta(State, Data = #{?TAG := State}) ->
     lists:foldr(
         fun(Scope, Acc) ->
-            'scope_meta=:=scoper_state'(Scope, [Scope | Acc], Data)
+            do_match_scoper_state_and_meta(Scope, [Scope | Acc], Data)
         end,
         [],
         State
     ),
     ok.
 
-'scope_meta=:=scoper_state'(Scope, State, Meta) ->
+do_match_scoper_state_and_meta(Scope, State, Meta) ->
     #{scopes := State} = maps:get(Scope, Meta),
     State.
 
