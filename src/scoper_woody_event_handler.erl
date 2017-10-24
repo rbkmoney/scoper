@@ -28,15 +28,15 @@ handle_event(Event = 'service result', RpcID, RawMeta, _Opts) ->
 
 %% server scoping
 handle_event(Event = 'server receive', RpcID, RawMeta, _Opts) ->
-    ok = scoper:add_scope(get_scope_name(server)),
+    ok = add_server_meta(RpcID),
     handle_event(Event, RpcID, RawMeta);
 handle_event(Event = 'server send', RpcID, RawMeta, _Opts) ->
-    _ = handle_event(Event, RpcID, RawMeta),
-    cleanup_server_meta();
+    ok = handle_event(Event, RpcID, RawMeta),
+    remove_server_meta();
 
 %% special cases
 handle_event(Event = 'internal error', RpcID, RawMeta, _Opts) ->
-    _ = handle_event(Event, RpcID, RawMeta),
+    ok = handle_event(Event, RpcID, RawMeta),
     final_error_cleanup(RawMeta);
 handle_event(Event = 'trace event', RpcID, RawMeta = #{role := Role}, _Opts) ->
     scoper:scope(
@@ -60,21 +60,33 @@ handle_event(Event, RpcID, RawMeta = #{role := Role}) ->
         [event, service, function, type, metadata, url]
     ),
     ok = scoper:add_meta(Meta),
-    lager:log(Level, [{pid, self()}] ++ collect_md(Role, RpcID), Format, Args).
+    lager:log(Level, collect_md(Role, RpcID), Format, Args).
+
+collect_md(client, RpcID) ->
+    collect_md(add_rpc_id(RpcID, lager:md()));
+collect_md(server, _RpcID) ->
+    collect_md(lager:md()).
+
+collect_md(MD) ->
+    [{pid, self()}] ++ MD.
 
 get_scope_name(client) ->
     'rpc.client';
 get_scope_name(server) ->
     'rpc.server'.
 
-collect_md(client, RpcID) ->
-    add_rpc_id(RpcID, lager:md());
-collect_md(server, RpcID) ->
+final_error_cleanup(#{role := server, error := _, final := true}) ->
+    remove_server_meta();
+final_error_cleanup(_) ->
+    ok.
+
+add_server_meta(RpcID) ->
+    ok = scoper:add_scope(get_scope_name(server)),
     lager:md(add_rpc_id(RpcID, lager:md())).
 
-cleanup_server_meta() ->
+remove_server_meta() ->
     ok = scoper:remove_scope(),
-    remove_rpc_id().
+    lager:md(remove_rpc_id(lager:md())).
 
 add_rpc_id(undefined, MD) ->
     MD;
@@ -85,23 +97,17 @@ add_rpc_id(RpcID, MD) ->
         RpcID
     ).
 
-remove_rpc_id() ->
-    lager:md(lists:filtermap(
+remove_rpc_id(MD) ->
+    lists:filtermap(
         fun({Key, _}) when
             Key =:= span_id  orelse
             Key =:= trace_id orelse
             Key =:= parent_id
         ->
             false;
-          (_)
+           (_)
         ->
             true
         end,
-        lager:md()
-    )).
-
-final_error_cleanup(#{role := server, error := _, final := true}) ->
-    cleanup_server_meta();
-final_error_cleanup(_) ->
-    ok.
-
+        MD
+    ).
