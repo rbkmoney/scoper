@@ -49,7 +49,7 @@ add_scope(Name) ->
     ok.
 add_scope(Name, Meta) ->
     Scopes = get_scope_names(),
-    case lists:member(Name, Scopes) of
+    case lists:member(Name, [?TAG | Scopes]) of
         true ->
             erlang:error(scopename_taken);
         false ->

@@ -146,9 +146,10 @@ play_with_meta(_C) ->
     #{key1 := dummy} = find(scope1),
     undefined        = maps:get(key1, find(scope2), undefined),
 
-    %% Try to create scope1 and scope2 again
+    %% Try to create scopes: scope1 and scope2 again, and also reserved 'scoper'
     ?assert_exc(error, scopename_taken, scoper:add_scope(scope1)),
     ?assert_exc(error, scopename_taken, scoper:add_scope(scope2)),
+    ?assert_exc(error, scopename_taken, scoper:add_scope(scoper)),
 
     %% Remove scope2, now in scope1
     scoper:remove_scope(),
