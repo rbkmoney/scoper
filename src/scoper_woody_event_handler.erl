@@ -39,11 +39,15 @@ handle_event(Event = 'internal error', RpcID, RawMeta, _Opts) ->
     ok = handle_event(Event, RpcID, RawMeta),
     final_error_cleanup(RawMeta);
 handle_event(Event = 'trace event', RpcID, RawMeta = #{role := Role}, _Opts) ->
-    scoper:scope(
-        get_scope_name(Role),
-        fun() -> handle_event(Event, RpcID, RawMeta) end
-    );
-
+    case lists:member(get_scope_name(Role), scoper:get_scope_names()) of
+        true ->
+            handle_event(Event, RpcID, RawMeta);
+        false ->
+            scoper:scope(
+                get_scope_name(Role),
+                fun() -> handle_event(Event, RpcID, RawMeta) end
+            )
+    end;
 %% the rest
 handle_event(Event, RpcID, RawMeta, _Opts) ->
     handle_event(Event, RpcID, RawMeta).

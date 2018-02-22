@@ -10,6 +10,7 @@
 -export([remove_meta/1]).
 -export([get_current_scope/0]).
 -export([collect/0]).
+-export([get_scope_names/0]).
 
 %% Types
 -type scope() :: scoper_storage:scope().
