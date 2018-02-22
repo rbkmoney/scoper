@@ -10,6 +10,7 @@
 -export([remove_meta/1]).
 -export([get_current_scope/0]).
 -export([collect/0]).
+-export([get_scope_names/0]).
 
 %% Types
 -type scope() :: scoper_storage:scope().
@@ -51,7 +52,7 @@ add_scope(Name, Meta) ->
     Scopes = get_scope_names(),
     case lists:member(Name, [?TAG | Scopes]) of
         true ->
-            erlang:error(scopename_taken);
+            erlang:error({scopename_taken, Name});
         false ->
             set_scope_names([Name | Scopes]),
             store(Name, Meta)
@@ -97,10 +98,6 @@ get_current_scope() ->
 collect() ->
     scoper_storage:collect().
 
-
-%%
-%% Internal functions
-%%
 -spec get_scope_names() ->
     [scope()].
 get_scope_names() ->
@@ -111,6 +108,10 @@ get_scope_names() ->
             Scopes
     end.
 
+
+%%
+%% Internal functions
+%%
 -spec set_scope_names([scope()]) ->
     ok.
 set_scope_names(Names) ->
