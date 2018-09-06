@@ -22,7 +22,15 @@ when
 handle_event(Event = 'call service', RpcID, RawMeta, _Opts) ->
     ok = scoper:add_scope(get_scope_name(client)),
     handle_event(Event, RpcID, RawMeta);
+handle_event(Event, RpcID, RawMeta, _Opts)
+    when Event =:= 'client cache hit' orelse Event =:= 'client cache miss'
+->
+    ok = scoper:add_scope(get_scope_name(caching_client)),
+    handle_event(Event, RpcID, RawMeta);
 handle_event(Event = 'service result', RpcID, RawMeta, _Opts) ->
+    ok = handle_event(Event, RpcID, RawMeta),
+    scoper:remove_scope();
+handle_event(Event = 'client cache result', RpcID, RawMeta, _Opts) ->
     ok = handle_event(Event, RpcID, RawMeta),
     scoper:remove_scope();
 
@@ -84,6 +92,8 @@ collect_md(MD) ->
 
 get_scope_name(client) ->
     'rpc.client';
+get_scope_name(caching_client) ->
+    'rpc.caching_client';
 get_scope_name(server) ->
     'rpc.server'.
 
