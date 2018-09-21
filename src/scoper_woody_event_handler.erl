@@ -69,7 +69,7 @@ handle_event(Event, RpcID, RawMeta = #{role := Role}) ->
         Event,
         RawMeta,
         RpcID,
-        [event, service, function, type, metadata, url]
+        [event, service, function, type, metadata, url, deadline]
     ),
     ok = scoper:add_meta(Meta),
     lager:log(Level, collect_md(Role, RpcID), Format, Args).
