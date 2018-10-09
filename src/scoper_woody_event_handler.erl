@@ -19,18 +19,16 @@ when
     Opts  :: woody:options().
 
 %% client scoping
-handle_event(Event = 'call service', RpcID, RawMeta, _Opts) ->
+handle_event(Event = 'client begin', RpcID, RawMeta, _Opts) ->
     ok = scoper:add_scope(get_scope_name(client)),
     handle_event(Event, RpcID, RawMeta);
-handle_event(Event, RpcID, RawMeta, _Opts)
-    when Event =:= 'client cache hit' orelse Event =:= 'client cache miss'
-->
+handle_event(Event = 'client cache begin', RpcID, RawMeta, _Opts) ->
     ok = scoper:add_scope(get_scope_name(caching_client)),
     handle_event(Event, RpcID, RawMeta);
-handle_event(Event = 'service result', RpcID, RawMeta, _Opts) ->
+handle_event(Event = 'client end', RpcID, RawMeta, _Opts) ->
     ok = handle_event(Event, RpcID, RawMeta),
     scoper:remove_scope();
-handle_event(Event = 'client cache result', RpcID, RawMeta, _Opts) ->
+handle_event(Event = 'client cache end', RpcID, RawMeta, _Opts) ->
     ok = handle_event(Event, RpcID, RawMeta),
     scoper:remove_scope();
 
@@ -64,6 +62,13 @@ handle_event(Event, RpcID, RawMeta, _Opts) ->
 %%
 %% Internal functions
 %%
+handle_event(Event, _RpcID, _RawMeta) when
+    Event =:= 'client begin' orelse
+    Event =:= 'client end' orelse
+    Event =:= 'client cache begin' orelse
+    Event =:= 'client cache end'
+->
+    ok;
 handle_event(Event, RpcID, RawMeta = #{role := Role}) ->
     {Level, {Format, Args}, Meta} = woody_event_handler:format_event_and_meta(
         Event,
