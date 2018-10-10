@@ -5,6 +5,7 @@
 %% scoper_storage behaviour callbacks
 -export([store/2]).
 -export([find/1]).
+-export([delete/0]).
 -export([delete/1]).
 -export([collect/0]).
 
@@ -26,6 +27,13 @@ find(ScopeName) ->
         false ->
             undefined
     end.
+
+-spec delete() ->
+    ok.
+delete() ->
+    %% Below is a trick to avoid dialyzer warining for the lager:md/1 spec:
+    %% -spec md([{atom(), any()},...]) -> ok.
+    lager:md(lists:nthtail(1, [{what, ever}])).
 
 -spec delete(scoper_storage:scope()) ->
     ok.

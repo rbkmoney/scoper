@@ -112,8 +112,16 @@ add_server_meta(RpcID) ->
     lager:md(add_rpc_id(RpcID, lager:md())).
 
 remove_server_meta() ->
-    ok = scoper:remove_scope(),
-    lager:md(remove_rpc_id(lager:md())).
+    _ = case scoper:get_current_scope() of
+        'rpc.server' ->
+            ok;
+        _  ->
+            error_logger:warning_msg(
+                "Scoper woody event handler: removing uncleaned scopes on the server: ~p",
+                [scoper:get_scope_names()]
+            )
+    end,
+    ok = scoper:clear().
 
 add_rpc_id(undefined, MD) ->
     MD;
@@ -122,15 +130,4 @@ add_rpc_id(RpcID, MD) ->
         fun(K, V, Acc) -> lists:keystore(K, 1, Acc, {K, V}) end,
         MD,
         RpcID
-    ).
-
-remove_rpc_id(MD) ->
-    lists:filter(
-        fun
-            ({Key, _}) ->
-                Key =/= span_id andalso Key =/= trace_id andalso Key =/= parent_id;
-            (_) ->
-                true
-        end,
-        MD
     ).
