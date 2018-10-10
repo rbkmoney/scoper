@@ -84,7 +84,7 @@ add_meta(Meta) ->
         ScopeName = get_current_scope(),
         store(ScopeName, maps:merge(find(ScopeName), Meta))
     catch
-        error:{?MODULE, no_scopes} ->
+        throw:{scoper, no_scopes} ->
             ok = error_logger:warning_msg("Scoper: attempt to add meta: ~p when no scopes set", [Meta])
     end.
 
@@ -95,16 +95,16 @@ remove_meta(Keys) ->
         ScopeName = get_current_scope(),
         store(ScopeName, maps:without(Keys, find(ScopeName)))
     catch
-        error:{?MODULE, no_scopes} ->
+        throw:{scoper, no_scopes} ->
             ok = error_logger:warning_msg("Scoper: attempt to remove meta keys ~p when no scopes set", [Keys])
     end.
 
 -spec get_current_scope() ->
-    scope().
+    scope() | no_return().
 get_current_scope() ->
     case get_scope_names() of
         [] ->
-            erlang:error({?MODULE, no_scopes});
+            erlang:throw({scoper, no_scopes});
         Scopes ->
             hd(Scopes)
     end.
