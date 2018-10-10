@@ -5,6 +5,7 @@
 %% scoper_storage behaviour callbacks.
 -export([store/2]).
 -export([find/1]).
+-export([delete/0]).
 -export([delete/1]).
 -export([collect/0]).
 
@@ -21,6 +22,11 @@ store(ScopeName, Payload) ->
     scoper_storage:payload() | undefined.
 find(ScopeName) ->
     maps:get(ScopeName, get_data(), undefined).
+
+-spec delete() ->
+    ok.
+delete() ->
+    put_data(#{}).
 
 -spec delete(scoper_storage:scope()) ->
     ok.

@@ -11,6 +11,7 @@
 -export([remove_meta/1]).
 -export([get_current_scope/0]).
 -export([collect/0]).
+-export([clear/0]).
 -export([get_scope_names/0]).
 
 %% Types
@@ -112,6 +113,11 @@ get_current_scope() ->
     data().
 collect() ->
     scoper_storage:collect().
+
+-spec clear() ->
+    ok.
+clear() ->
+    scoper_storage:delete().
 
 -spec get_scope_names() ->
     [scope()].

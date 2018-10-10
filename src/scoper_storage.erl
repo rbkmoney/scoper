@@ -3,6 +3,7 @@
 %% API
 -export([store/2]).
 -export([find/1]).
+-export([delete/0]).
 -export([delete/1]).
 -export([collect/0]).
 
@@ -25,6 +26,9 @@
 -callback find(scope()) ->
     payload() | undefined.
 
+-callback delete() ->
+    ok.
+
 -callback delete(scope()) ->
     ok.
 
@@ -44,6 +48,11 @@ store(ScopeName, Payload) ->
     payload() | undefined.
 find(ScopeName) ->
     (logger()):find(ScopeName).
+
+-spec delete() ->
+    ok.
+delete() ->
+    (logger()):delete().
 
 -spec delete(scope()) ->
     ok.

@@ -175,6 +175,14 @@ play_with_meta(_C) ->
     ok  = scoper:add_meta(#{dummy => dummy}),
     #{} = scoper:collect(),
     ok  = scoper:remove_meta(dummy),
+    #{} = scoper:collect(),
+
+    %% Add scopes and clear them all
+    ok  = scoper:add_scope(scope1),
+    ok  = scoper:add_scope(scope2),
+    #{} = find(scope1),
+    #{} = find(scope2),
+    ok  = scoper:clear(),
     #{} = scoper:collect().
 
 %%
