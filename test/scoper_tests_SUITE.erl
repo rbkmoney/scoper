@@ -21,16 +21,6 @@
 
 -define(TAG, scoper).
 
--define(assert_exc(Class, Reason, Fun),
-    try
-        Fun,
-        erlang:error(assertion_failed)
-    catch
-        Class:Reason ->
-            ok
-    end
-).
-
 %%
 %% Tests descriptions
 %%
@@ -115,8 +105,10 @@ mirror_scoper_state_in_meta([Scope | NextScopes], State) ->
     ok.
 play_with_meta(_C) ->
     %% Try to operate on non initilized scopes
-    ?assert_exc(error, no_scopes, scoper:add_meta(#{dummy => dummy})),
-    ?assert_exc(error, no_scopes, scoper:remove_meta(dummy)),
+    ok  = scoper:add_meta(#{dummy => dummy}),
+    #{} = scoper:collect(),
+    ok  = scoper:remove_meta(dummy),
+    #{} = scoper:collect(),
 
     %% Create scope1 and add key1
     ok               = scoper:add_scope(scope1),
@@ -147,12 +139,26 @@ play_with_meta(_C) ->
     undefined        = maps:get(key1, find(scope2), undefined),
 
     %% Try to create scopes: scope1 and scope2 again, and also reserved 'scoper'
-    ?assert_exc(error, {scopename_taken, scope1}, scoper:add_scope(scope1)),
-    ?assert_exc(error, {scopename_taken, scope2}, scoper:add_scope(scope2)),
-    ?assert_exc(error, {scopename_taken, scoper}, scoper:add_scope(scoper)),
+    Data = scoper:collect(),
+    ok   = scoper:add_scope(scope1),
+    Data = scoper:collect(),
+    ok   = scoper:add_scope(scope1),
+    Data = scoper:collect(),
+    ok   = scoper:add_scope(scope2),
+    Data = scoper:collect(),
+    ok   = scoper:add_scope(scoper),
+    Data = scoper:collect(),
+
+    %% Try to remove scope1 (still in scope2 now)
+    ok   = scoper:remove_scope(scope1),
+    Data = scoper:collect(),
+
+    %% Try to remove unexisting scope5 (still in scope2 now)
+    ok   = scoper:remove_scope(scope1),
+    Data = scoper:collect(),
 
     %% Remove scope2, now in scope1
-    scoper:remove_scope(),
+    ok               = scoper:remove_scope(scope2),
     undefined        = find(scope2),
     #{key1 := dummy} = find(scope1),
 
@@ -161,12 +167,15 @@ play_with_meta(_C) ->
     #{key1 := dummy, key2 := dummy} = find(scope1),
 
     %% Remove scope1, no scopes left
-    scoper:remove_scope(),
+    ok        = scoper:remove_scope(),
     undefined = find(scope1),
+    #{}       = scoper:collect(),
 
     %% Try to operate when no scopes are there
-    ?assert_exc(error, no_scopes, scoper:add_meta(#{dummy => dummy})),
-    ?assert_exc(error, no_scopes, scoper:remove_meta(dummy)).
+    ok  = scoper:add_meta(#{dummy => dummy}),
+    #{} = scoper:collect(),
+    ok  = scoper:remove_meta(dummy),
+    #{} = scoper:collect().
 
 %%
 %% Internal functions
