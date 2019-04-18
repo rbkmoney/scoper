@@ -29,7 +29,8 @@
 all() ->
     [
         {group, procdict},
-        {group, lager}
+        {group, lager},
+        {group, logger}
     ].
 
 -spec groups() ->
@@ -42,6 +43,10 @@ groups() ->
             play_with_meta
         ]},
         {lager, [sequence], [
+            mirror_scoper_state_in_meta,
+            play_with_meta
+        ]},
+        {logger, [sequence], [
             mirror_scoper_state_in_meta,
             play_with_meta
         ]}
@@ -68,7 +73,9 @@ end_per_suite(C) ->
 init_per_group(procdict, C) ->
     init_group(scoper_storage_procdict, C);
 init_per_group(lager, C) ->
-    init_group(scoper_storage_lager, C).
+    init_group(scoper_storage_lager, C);
+init_per_group(logger, C) ->
+    init_group(scoper_storage_logger, C).
 
 init_group(Logger, C) ->
     ok = application:set_env(scoper, storage, Logger),
@@ -154,7 +161,7 @@ play_with_meta(_C) ->
     Data = scoper:collect(),
 
     %% Try to remove unexisting scope5 (still in scope2 now)
-    ok   = scoper:remove_scope(scope1),
+    ok   = scoper:remove_scope(scope1), % a typo?
     Data = scoper:collect(),
 
     %% Remove scope2, now in scope1
