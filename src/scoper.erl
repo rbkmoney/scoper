@@ -13,7 +13,6 @@
 -export([collect/0]).
 -export([clear/0]).
 -export([get_scope_names/0]).
--export([get_process_meta/0]).
 
 %% Types
 -type scope() :: scoper_storage:scope().
@@ -163,11 +162,3 @@ find(Key) ->
     ok.
 delete(Key) ->
     scoper_storage:delete(Key).
-
--spec get_process_meta() ->
-    logger:metadata().
-get_process_meta() ->
-    case logger:get_process_metadata() of
-        undefined -> #{};
-        Metadata -> Metadata
-    end.

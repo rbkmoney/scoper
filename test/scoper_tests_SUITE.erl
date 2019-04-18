@@ -161,7 +161,7 @@ play_with_meta(_C) ->
     Data = scoper:collect(),
 
     %% Try to remove unexisting scope5 (still in scope2 now)
-    ok   = scoper:remove_scope(scope1), % a typo?
+    ok   = scoper:remove_scope(scope5),
     Data = scoper:collect(),
 
     %% Remove scope2, now in scope1

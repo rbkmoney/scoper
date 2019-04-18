@@ -77,7 +77,7 @@ handle_event(Event, RpcID, RawMeta = #{role := Role}) ->
         [event, service, function, type, metadata, url, deadline]
     ),
     ok = scoper:add_meta(Meta),
-    logger:log(Level, Format, Args,  collect_md(Role, RpcID)).
+    logger:log(Level, Format, Args, collect_md(Role, RpcID)).
 
 %% Log metadata should contain rpc ID properties (trace_id, span_id and parent_id)
 %% _on the top level_ according to the requirements.
@@ -88,9 +88,9 @@ handle_event(Event, RpcID, RawMeta = #{role := Role}) ->
 %% in that case, so child rpc ID does not override parent rpc ID
 %% for the server handler processing context.
 collect_md(client, RpcID) ->
-    collect_md(add_rpc_id(RpcID, scoper:get_process_meta()));
+    collect_md(add_rpc_id(RpcID, scoper_storage_logger:get_process_meta()));
 collect_md(server, _RpcID) ->
-    collect_md(scoper:get_process_meta()).
+    collect_md(scoper_storage_logger:get_process_meta()).
 
 collect_md(MD) ->
     MD#{pid => self()}.
@@ -109,7 +109,7 @@ final_error_cleanup(_) ->
 
 add_server_meta(RpcID) ->
     ok = scoper:add_scope(get_scope_name(server)),
-    logger:set_process_metadata(add_rpc_id(RpcID, scoper:get_process_meta())).
+    logger:set_process_metadata(add_rpc_id(RpcID, scoper_storage_logger:get_process_meta())).
 
 remove_server_meta() ->
     _ = case scoper:get_current_scope() of
@@ -126,9 +126,4 @@ remove_server_meta() ->
 add_rpc_id(undefined, MD) ->
     MD;
 add_rpc_id(RpcID, MD) ->
-    % maps:fold(
-    %     fun(K, V, Acc) -> lists:keystore(K, 1, Acc, {K, V}) end,
-    %     MD,
-    %     RpcID
-    % ).
     maps:merge(MD, RpcID).

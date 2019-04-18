@@ -8,6 +8,7 @@
 -export([delete/0]).
 -export([delete/1]).
 -export([collect/0]).
+-export([get_process_meta/0]).
 
 
 %%
@@ -16,13 +17,13 @@
 -spec store(scoper_storage:scope(), scoper_storage:payload()) ->
     ok.
 store(ScopeName, Payload) ->
-    CurrScope = scoper:get_process_meta(),
-    logger:set_process_metadata(CurrScope#{ScopeName => Payload}). % update perhaps?
+    CurrScope = get_process_meta(),
+    logger:update_process_metadata(CurrScope#{ScopeName => Payload}).
 
 -spec find(scoper_storage:scope()) ->
     scoper_storage:payload() | undefined.
 find(ScopeName) ->
-    maps:get(ScopeName, scoper:get_process_meta(), undefined).
+    maps:get(ScopeName, get_process_meta(), undefined).
 
 -spec delete() ->
     ok.
@@ -32,11 +33,18 @@ delete() ->
 -spec delete(scoper_storage:scope()) ->
     ok.
 delete(ScopeName) ->
-    CurrScope = scoper:get_process_meta(),
+    CurrScope = get_process_meta(),
     logger:set_process_metadata(maps:remove(ScopeName, CurrScope)).
 
 -spec collect() ->
     scoper_storage:data().
 collect() ->
-    scoper:get_process_meta().
+    get_process_meta().
 
+-spec get_process_meta() ->
+    scoper_storage:data().
+get_process_meta() ->
+    case logger:get_process_metadata() of
+        undefined -> #{};
+        Metadata -> Metadata
+    end.
