@@ -77,7 +77,7 @@ handle_event(Event, RpcID, RawMeta = #{role := Role}) ->
         [event, service, function, type, metadata, url, deadline]
     ),
     ok = scoper:add_meta(Meta),
-    lager:log(Level, collect_md(Role, RpcID), Format, Args).
+    logger:log(Level, Format, Args, collect_md(Role, RpcID)).
 
 %% Log metadata should contain rpc ID properties (trace_id, span_id and parent_id)
 %% _on the top level_ according to the requirements.
@@ -88,12 +88,12 @@ handle_event(Event, RpcID, RawMeta = #{role := Role}) ->
 %% in that case, so child rpc ID does not override parent rpc ID
 %% for the server handler processing context.
 collect_md(client, RpcID) ->
-    collect_md(add_rpc_id(RpcID, lager:md()));
+    collect_md(add_rpc_id(RpcID, scoper:collect()));
 collect_md(server, _RpcID) ->
-    collect_md(lager:md()).
+    collect_md(scoper:collect()).
 
 collect_md(MD) ->
-    [{pid, self()}] ++ MD.
+    MD#{pid => self()}.
 
 get_scope_name(client) ->
     'rpc.client';
@@ -109,14 +109,14 @@ final_error_cleanup(_) ->
 
 add_server_meta(RpcID) ->
     ok = scoper:add_scope(get_scope_name(server)),
-    lager:md(add_rpc_id(RpcID, lager:md())).
+    logger:set_process_metadata(add_rpc_id(RpcID, scoper:collect())).
 
 remove_server_meta() ->
     _ = case scoper:get_current_scope() of
         'rpc.server' ->
             ok;
         _  ->
-            error_logger:warning_msg(
+            logger:warning(
                 "Scoper woody event handler: removing uncleaned scopes on the server: ~p",
                 [scoper:get_scope_names()]
             )
@@ -126,8 +126,4 @@ remove_server_meta() ->
 add_rpc_id(undefined, MD) ->
     MD;
 add_rpc_id(RpcID, MD) ->
-    maps:fold(
-        fun(K, V, Acc) -> lists:keystore(K, 1, Acc, {K, V}) end,
-        MD,
-        RpcID
-    ).
+    maps:merge(MD, RpcID).

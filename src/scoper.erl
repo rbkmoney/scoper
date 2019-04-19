@@ -85,7 +85,7 @@ add_meta(Meta) ->
         store(ScopeName, maps:merge(find(ScopeName), Meta))
     catch
         throw:{scoper, no_scopes} ->
-            ok = error_logger:warning_msg("Scoper: attempt to add meta: ~p when no scopes set", [Meta])
+            ok = logger:warning("Scoper: attempt to add meta: ~p when no scopes set", [Meta])
     end.
 
 -spec remove_meta([key()]) ->
@@ -96,7 +96,7 @@ remove_meta(Keys) ->
         store(ScopeName, maps:without(Keys, find(ScopeName)))
     catch
         throw:{scoper, no_scopes} ->
-            ok = error_logger:warning_msg("Scoper: attempt to remove meta keys ~p when no scopes set", [Keys])
+            ok = logger:warning("Scoper: attempt to remove meta keys ~p when no scopes set", [Keys])
     end.
 
 -spec get_current_scope() ->
