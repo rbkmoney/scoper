@@ -88,9 +88,9 @@ handle_event(Event, RpcID, RawMeta = #{role := Role}) ->
 %% in that case, so child rpc ID does not override parent rpc ID
 %% for the server handler processing context.
 collect_md(client, RpcID) ->
-    collect_md(add_rpc_id(RpcID, scoper_storage_logger:collect()));
+    collect_md(add_rpc_id(RpcID, scoper:collect()));
 collect_md(server, _RpcID) ->
-    collect_md(scoper_storage_logger:collect()).
+    collect_md(scoper:collect()).
 
 collect_md(MD) ->
     MD#{pid => self()}.
@@ -109,7 +109,7 @@ final_error_cleanup(_) ->
 
 add_server_meta(RpcID) ->
     ok = scoper:add_scope(get_scope_name(server)),
-    logger:set_process_metadata(add_rpc_id(RpcID, scoper_storage_logger:collect())).
+    logger:set_process_metadata(add_rpc_id(RpcID, scoper:collect())).
 
 remove_server_meta() ->
     _ = case scoper:get_current_scope() of
