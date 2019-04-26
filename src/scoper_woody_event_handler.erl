@@ -74,10 +74,12 @@ handle_event(Event, RpcID, RawMeta = #{role := Role}) ->
         Event,
         RawMeta,
         RpcID,
-        [event, service, function, type, metadata, url, deadline]
+        [event, service, function, type, metadata, url, deadline, execution_duration_ms]
     ),
     ok = scoper:add_meta(Meta),
-    logger:log(Level, Format, Args, collect_md(Role, RpcID)).
+    logger:log(Level, Format, Args, collect_md(Role, RpcID));
+handle_event(_Event, _RpcID, _RawMeta) ->
+    ok.
 
 %% Log metadata should contain rpc ID properties (trace_id, span_id and parent_id)
 %% _on the top level_ according to the requirements.
