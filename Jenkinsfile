@@ -34,7 +34,7 @@ build('scoper', 'docker-host', finalHook) {
       }
     }
     runStage('dialyze') {
-      withWsCache("_build/test/rebar3_21.1.1_plt") {
+      withWsCache("_build/test/rebar3_21.3.8.4_plt") {
         sh 'make wc_dialyze'
       }
     }
