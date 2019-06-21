@@ -7,7 +7,7 @@ UTILS_PATH := build_utils
 # with handling of the varriable in build_utils is fixed
 TEMPLATES_PATH := .
 SERVICE_NAME := scoper
-BUILD_IMAGE_TAG := fcf116dd775cc2e91bffb6a36835754e3f2d5321
+BUILD_IMAGE_TAG := cd38c35976f3684fe7552533b6175a4c3460e88b
 
 CALL_W_CONTAINER := all submodules rebar-update compile xref lint dialyze test clean distclean
 
