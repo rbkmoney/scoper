@@ -6,6 +6,10 @@
 %% woody_event_handler behaviour callbacks
 -export([handle_event/4]).
 
+-type options() :: #{
+    event_handler_opts => woody_event_handler:options()
+}.
+-export_type([options/0]).
 
 %%
 %% woody_event_handler behaviour callbacks
@@ -16,69 +20,70 @@ when
     Event :: woody_event_handler:event(),
     RpcId :: woody:rpc_id() | undefined,
     Meta  :: woody_event_handler:event_meta(),
-    Opts  :: woody:options().
+    Opts  :: options().
 
 %% client scoping
-handle_event(Event = 'client begin', RpcID, RawMeta, _Opts) ->
+handle_event(Event = 'client begin', RpcID, RawMeta, Opts) ->
     ok = scoper:add_scope(get_scope_name(client)),
-    handle_event(Event, RpcID, RawMeta);
-handle_event(Event = 'client cache begin', RpcID, RawMeta, _Opts) ->
+    do_handle_event(Event, RpcID, RawMeta, Opts);
+handle_event(Event = 'client cache begin', RpcID, RawMeta, Opts) ->
     ok = scoper:add_scope(get_scope_name(caching_client)),
-    handle_event(Event, RpcID, RawMeta);
-handle_event(Event = 'client end', RpcID, RawMeta, _Opts) ->
-    ok = handle_event(Event, RpcID, RawMeta),
+    do_handle_event(Event, RpcID, RawMeta, Opts);
+handle_event(Event = 'client end', RpcID, RawMeta, Opts) ->
+    ok = do_handle_event(Event, RpcID, RawMeta, Opts),
     scoper:remove_scope();
-handle_event(Event = 'client cache end', RpcID, RawMeta, _Opts) ->
-    ok = handle_event(Event, RpcID, RawMeta),
+handle_event(Event = 'client cache end', RpcID, RawMeta, Opts) ->
+    ok = do_handle_event(Event, RpcID, RawMeta, Opts),
     scoper:remove_scope();
 
 %% server scoping
-handle_event(Event = 'server receive', RpcID, RawMeta, _Opts) ->
+handle_event(Event = 'server receive', RpcID, RawMeta, Opts) ->
     ok = add_server_meta(RpcID),
-    handle_event(Event, RpcID, RawMeta);
-handle_event(Event = 'server send', RpcID, RawMeta, _Opts) ->
-    ok = handle_event(Event, RpcID, RawMeta),
+    do_handle_event(Event, RpcID, RawMeta, Opts);
+handle_event(Event = 'server send', RpcID, RawMeta, Opts) ->
+    ok = do_handle_event(Event, RpcID, RawMeta, Opts),
     remove_server_meta();
 
 %% special cases
-handle_event(Event = 'internal error', RpcID, RawMeta, _Opts) ->
-    ok = handle_event(Event, RpcID, RawMeta),
+handle_event(Event = 'internal error', RpcID, RawMeta, Opts) ->
+    ok = do_handle_event(Event, RpcID, RawMeta, Opts),
     final_error_cleanup(RawMeta);
-handle_event(Event = 'trace event', RpcID, RawMeta = #{role := Role}, _Opts) ->
+handle_event(Event = 'trace event', RpcID, RawMeta = #{role := Role}, Opts) ->
     case lists:member(get_scope_name(Role), scoper:get_scope_names()) of
         true ->
-            handle_event(Event, RpcID, RawMeta);
+            do_handle_event(Event, RpcID, RawMeta, Opts);
         false ->
             scoper:scope(
                 get_scope_name(Role),
-                fun() -> handle_event(Event, RpcID, RawMeta) end
+                fun() -> do_handle_event(Event, RpcID, RawMeta, Opts) end
             )
     end;
 %% the rest
-handle_event(Event, RpcID, RawMeta, _Opts) ->
-    handle_event(Event, RpcID, RawMeta).
+handle_event(Event, RpcID, RawMeta, Opts) ->
+    do_handle_event(Event, RpcID, RawMeta, Opts).
 
 
 %%
 %% Internal functions
 %%
-handle_event(Event, _RpcID, _RawMeta) when
+do_handle_event(Event, _RpcID, _RawMeta, _Opts) when
     Event =:= 'client begin' orelse
     Event =:= 'client end' orelse
     Event =:= 'client cache begin' orelse
     Event =:= 'client cache end'
 ->
     ok;
-handle_event(Event, RpcID, RawMeta = #{role := Role}) ->
+do_handle_event(Event, RpcID, RawMeta = #{role := Role}, Opts) ->
     {Level, {Format, Args}, Meta} = woody_event_handler:format_event_and_meta(
         Event,
         RawMeta,
         RpcID,
-        [event, service, function, type, metadata, url, deadline, execution_duration_ms]
+        [event, service, function, type, metadata, url, deadline, execution_duration_ms],
+        get_event_handler_options(Opts)
     ),
     ok = scoper:add_meta(Meta),
     logger:log(Level, Format, Args, collect_md(Role, RpcID));
-handle_event(_Event, _RpcID, _RawMeta) ->
+do_handle_event(_Event, _RpcID, _RawMeta, _Opts) ->
     ok.
 
 %% Log metadata should contain rpc ID properties (trace_id, span_id and parent_id)
@@ -129,3 +134,9 @@ add_rpc_id(undefined, MD) ->
     MD;
 add_rpc_id(RpcID, MD) ->
     maps:merge(MD, RpcID).
+
+%% Pass event_handler_opts only
+get_event_handler_options(#{event_handler_opts := EventHandlerOptions}) ->
+    EventHandlerOptions;
+get_event_handler_options(_Opts) ->
+    #{}.
