@@ -137,4 +137,6 @@ add_rpc_id(RpcID, MD) ->
 
 %% Pass event_handler_opts only
 get_event_handler_options(#{event_handler_opts := EventHandlerOptions}) ->
-    EventHandlerOptions.
+    EventHandlerOptions;
+get_event_handler_options(_Opts) ->
+    #{}.
