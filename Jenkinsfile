@@ -18,6 +18,6 @@ build('scoper', 'docker-host', finalHook) {
     pipeErlangLib = load("${env.JENKINS_LIB}/pipeErlangLib.groovy")
   }
 
-  pipeErlangLib.runPipe(false, true, 'test')
+  pipeErlangLib.runPipe(false, false, 'test')
 }
 
