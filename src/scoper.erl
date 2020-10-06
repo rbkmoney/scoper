@@ -10,8 +10,8 @@
 -export([add_meta/2]).
 -export([remove_meta/2]).
 -export([get_current_scope/1]).
--export([collect/0]).
--export([clear/0]).
+-export([collect/1]).
+-export([clear/1]).
 -export([get_scope_names/1]).
 
 %% Types
@@ -109,15 +109,15 @@ get_current_scope(Key) ->
             hd(Scopes)
     end.
 
--spec collect() ->
+-spec collect(_) ->
     data().
-collect() ->
-    scoper_storage:collect().
+collect(Key) ->
+    scoper_storage:collect(Key).
 
--spec clear() ->
+-spec clear(_) ->
     ok.
-clear() ->
-    scoper_storage:delete().
+clear(Key) ->
+    scoper_storage:delete(Key).
 
 -spec get_scope_names(_) ->
     [scope()].

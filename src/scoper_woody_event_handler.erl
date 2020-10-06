@@ -24,17 +24,21 @@ when
 
 %% client scoping
 handle_event(Event = 'client begin', RpcID, RawMeta, Opts) ->
-    ok = scoper:add_scope(get_scope_name(client)),
+    Key = get_span_id(RpcID),
+    ok = scoper:add_scope(Key, get_scope_name(client)),
     do_handle_event(Event, RpcID, RawMeta, Opts);
 handle_event(Event = 'client cache begin', RpcID, RawMeta, Opts) ->
-    ok = scoper:add_scope(get_scope_name(caching_client)),
+    Key = get_span_id(RpcID),
+    ok = scoper:add_scope(Key, get_scope_name(caching_client)),
     do_handle_event(Event, RpcID, RawMeta, Opts);
 handle_event(Event = 'client end', RpcID, RawMeta, Opts) ->
+    Key = get_span_id(RpcID),
     ok = do_handle_event(Event, RpcID, RawMeta, Opts),
-    scoper:remove_scope();
+    scoper:remove_scope(Key);
 handle_event(Event = 'client cache end', RpcID, RawMeta, Opts) ->
     ok = do_handle_event(Event, RpcID, RawMeta, Opts),
-    scoper:remove_scope();
+    Key = get_span_id(RpcID),
+    scoper:remove_scope(Key);
 
 %% server scoping
 handle_event(Event = 'server receive', RpcID, RawMeta, Opts) ->
@@ -42,12 +46,14 @@ handle_event(Event = 'server receive', RpcID, RawMeta, Opts) ->
     do_handle_event(Event, RpcID, RawMeta, Opts);
 handle_event(Event = 'server send', RpcID, RawMeta, Opts) ->
     ok = do_handle_event(Event, RpcID, RawMeta, Opts),
-    remove_server_meta();
+    Key = get_span_id(RpcID),
+    remove_server_meta(Key);
 
 %% special cases
 handle_event(Event = 'internal error', RpcID, RawMeta, Opts) ->
     ok = do_handle_event(Event, RpcID, RawMeta, Opts),
-    final_error_cleanup(RawMeta);
+    Key = get_span_id(RpcID),
+    final_error_cleanup(Key, RawMeta);
 handle_event(Event = 'trace event', RpcID, RawMeta = #{role := Role}, Opts) ->
     case lists:member(get_scope_name(Role), scoper:get_scope_names()) of
         true ->
@@ -95,9 +101,11 @@ do_handle_event(_Event, _RpcID, _RawMeta, _Opts) ->
 %% in that case, so child rpc ID does not override parent rpc ID
 %% for the server handler processing context.
 collect_md(client, RpcID) ->
-    collect_md(add_rpc_id(RpcID, scoper:collect()));
-collect_md(server, _RpcID) ->
-    collect_md(scoper:collect()).
+    Key = get_span_id(RpcID),
+    collect_md(add_rpc_id(RpcID, scoper:collect(Key)));
+collect_md(server, RpcID) ->
+    Key = get_span_id(RpcID),
+    collect_md(scoper:collect(Key)).
 
 collect_md(MD) ->
     MD#{pid => self()}.
@@ -109,26 +117,27 @@ get_scope_name(caching_client) ->
 get_scope_name(server) ->
     'rpc.server'.
 
-final_error_cleanup(#{role := server, error := _, final := true}) ->
-    remove_server_meta();
-final_error_cleanup(_) ->
+final_error_cleanup(Key,#{role := server, error := _, final := true}) ->
+    remove_server_meta(Key);
+final_error_cleanup(_, _) ->
     ok.
 
 add_server_meta(RpcID) ->
-    ok = scoper:add_scope(get_scope_name(server)),
+    Key = get_span_id(RpcID),
+    ok = scoper:add_scope(Key, get_scope_name(server)),
     logger:set_process_metadata(add_rpc_id(RpcID, scoper:collect())).
 
-remove_server_meta() ->
-    _ = case scoper:get_current_scope() of
+remove_server_meta(Key) ->
+    _ = case scoper:get_current_scope(Key) of
         'rpc.server' ->
             ok;
         _  ->
             logger:warning(
                 "Scoper woody event handler: removing uncleaned scopes on the server: ~p",
-                [scoper:get_scope_names()]
+                [scoper:get_scope_names(Key)]
             )
     end,
-    ok = scoper:clear().
+    ok = scoper:clear(Key).
 
 add_rpc_id(undefined, MD) ->
     MD;
@@ -140,3 +149,6 @@ get_event_handler_options(#{event_handler_opts := EventHandlerOptions}) ->
     EventHandlerOptions;
 get_event_handler_options(_Opts) ->
     #{}.
+
+get_span_id(#{span_id := ID}) ->
+    ID.
