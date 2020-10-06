@@ -1,13 +1,14 @@
 -module(scoper_storage).
 
 %% API
--export([store/2]).
--export([find/1]).
--export([delete/0]).
+-export([store/3]).
+-export([find/2]).
 -export([delete/1]).
--export([collect/0]).
+-export([delete/2]).
+-export([collect/1]).
 
 %% Types
+-type storage_key() :: any().
 -type key()     :: atom().
 -type value()   :: any().
 -type meta()    :: #{key() => value()}.
@@ -20,53 +21,53 @@
 %%
 %% Behaviour definition
 %%
--callback store(scope(), payload()) ->
+-callback store(storage_key(), scope(), payload()) ->
     ok.
 
--callback find(scope()) ->
+-callback find(storage_key(), scope()) ->
     payload() | undefined.
 
--callback delete() ->
+-callback delete(storage_key()) ->
     ok.
 
--callback delete(scope()) ->
+-callback delete(storage_key(), scope()) ->
     ok.
 
--callback collect() ->
+-callback collect(storage_key()) ->
     data().
 
 
 %%
 %% API
 %%
--spec store(scope(), payload()) ->
+-spec store(storage_key(), scope(), payload()) ->
     ok.
-store(ScopeName, Payload) ->
-    (logger()):store(ScopeName, Payload).
+store(StorageKey, ScopeName, Payload) ->
+    (storage()):store(StorageKey, ScopeName, Payload).
 
--spec find(scope()) ->
+-spec find(storage_key(), scope()) ->
     payload() | undefined.
-find(ScopeName) ->
-    (logger()):find(ScopeName).
+find(StorageKey, ScopeName) ->
+    (storage()):find(StorageKey, ScopeName).
 
--spec delete() ->
+-spec delete(storage_key()) ->
     ok.
-delete() ->
-    (logger()):delete().
+delete(StorageKey) ->
+    (storage()):delete(StorageKey).
 
--spec delete(scope()) ->
+-spec delete(storage_key(), scope()) ->
     ok.
-delete(ScopeName) ->
-    (logger()):delete(ScopeName).
+delete(StorageKey, ScopeName) ->
+    (storage()):delete(StorageKey, ScopeName).
 
--spec collect() ->
+-spec collect(storage_key()) ->
     data().
-collect() ->
-    (logger()):collect().
+collect(StorageKey) ->
+    (storage()):collect(StorageKey).
 
 
 %%
 %% Internal functions
 %%
-logger() ->
+storage() ->
     application:get_env(scoper, storage, scoper_storage_procdict).

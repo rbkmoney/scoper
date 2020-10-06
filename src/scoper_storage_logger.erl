@@ -3,41 +3,41 @@
 -behaviour(scoper_storage).
 
 %% scoper_storage behaviour callbacks
--export([store/2]).
--export([find/1]).
--export([delete/0]).
+-export([store/3]).
+-export([find/2]).
 -export([delete/1]).
--export([collect/0]).
+-export([delete/2]).
+-export([collect/1]).
 
 
 %%
 %% scoper_storage behaviour callbacks
 %%
--spec store(scoper_storage:scope(), scoper_storage:payload()) ->
+-spec store(_, scoper_storage:scope(), scoper_storage:payload()) ->
     ok.
-store(ScopeName, Payload) ->
-    CurrScope = collect(),
+store(_, ScopeName, Payload) ->
+    CurrScope = collect(ok),
     logger:update_process_metadata(CurrScope#{ScopeName => Payload}).
 
--spec find(scoper_storage:scope()) ->
+-spec find(_, scoper_storage:scope()) ->
     scoper_storage:payload() | undefined.
-find(ScopeName) ->
-    maps:get(ScopeName, collect(), undefined).
+find(_, ScopeName) ->
+    maps:get(ScopeName, collect(ok), undefined).
 
--spec delete() ->
+-spec delete(_) ->
     ok.
-delete() ->
+delete(_) ->
     logger:set_process_metadata(#{}).
 
--spec delete(scoper_storage:scope()) ->
+-spec delete(_, scoper_storage:scope()) ->
     ok.
-delete(ScopeName) ->
-    CurrScope = collect(),
+delete(_, ScopeName) ->
+    CurrScope = collect(ok),
     logger:set_process_metadata(maps:remove(ScopeName, CurrScope)).
 
--spec collect() ->
+-spec collect(_) ->
     scoper_storage:data().
-collect() ->
+collect(_) ->
     case logger:get_process_metadata() of
         undefined -> #{};
         Metadata -> Metadata
