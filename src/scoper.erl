@@ -2,17 +2,17 @@
 
 %% API
 -export([scope/2]).
--export([scope/3]).
+-export([scope/4]).
 -export([add_scope/1]).
--export([add_scope/2]).
--export([remove_scope/0]).
+-export([add_scope/3]).
 -export([remove_scope/1]).
--export([add_meta/1]).
--export([remove_meta/1]).
--export([get_current_scope/0]).
+-export([remove_scope/2]).
+-export([add_meta/2]).
+-export([remove_meta/2]).
+-export([get_current_scope/1]).
 -export([collect/0]).
 -export([clear/0]).
--export([get_scope_names/0]).
+-export([get_scope_names/1]).
 
 %% Types
 -type scope() :: scoper_storage:scope().
@@ -31,13 +31,13 @@
 -spec scope(scope(), fun()) ->
     _.
 scope(Name, Fun) ->
-    scope(Name, #{}, Fun).
+    scope(ok, Name, #{}, Fun).
 
--spec scope(scope(), meta(), fun()) ->
+-spec scope(_, scope(), meta(), fun()) ->
     _.
-scope(Name, Meta, Fun) ->
+scope(Key, Name, Meta, Fun) ->
     try
-        add_scope(Name, Meta),
+        add_scope(Key, Name, Meta),
         Fun()
     after
         remove_scope(Name)
@@ -46,63 +46,63 @@ scope(Name, Meta, Fun) ->
 -spec add_scope(scope()) ->
     ok.
 add_scope(Name) ->
-    add_scope(Name, #{}).
+    add_scope(ok, Name, #{}).
 
--spec add_scope(scope(), meta()) ->
+-spec add_scope(_, scope(), meta()) ->
     ok.
-add_scope(Name, Meta) ->
-    Scopes = get_scope_names(),
+add_scope(Key, Name, Meta) ->
+    Scopes = get_scope_names(Key),
     case lists:member(Name, [?TAG | Scopes]) of
         true ->
             ok = error_logger:warning_msg("Scoper: attempt to add taken scope ~p; scopes: ~p", [Name, Scopes]);
         false ->
-            set_scope_names([Name | Scopes]),
+            set_scope_names(Key, [Name | Scopes]),
             store(Name, Meta)
     end.
 
--spec remove_scope() ->
+-spec remove_scope(_) ->
     ok.
-remove_scope() ->
-    case get_scope_names() of
+remove_scope(Key) ->
+    case get_scope_names(Key) of
         [] ->
-            remove_scope('$remove_scope/0', []);
+            remove_scope(Key, '$remove_scope/0', []);
         Scopes = [Current | _] ->
-            remove_scope(Current, Scopes)
+            remove_scope(Key, Current, Scopes)
     end.
 
--spec remove_scope(scope()) ->
+-spec remove_scope(_, scope()) ->
     ok.
-remove_scope(Name) ->
-    remove_scope(Name, get_scope_names()).
+remove_scope(Key, Name) ->
+    remove_scope(Key, Name, get_scope_names(Key)).
 
--spec add_meta(meta()) ->
+-spec add_meta(_, meta()) ->
     ok.
-add_meta(Meta) when map_size(Meta) =:= 0 ->
+add_meta(_, Meta) when map_size(Meta) =:= 0 ->
     ok;
-add_meta(Meta) ->
+add_meta(Key, Meta) ->
     try
-        ScopeName = get_current_scope(),
+        ScopeName = get_current_scope(Key),
         store(ScopeName, maps:merge(find(ScopeName), Meta))
     catch
         throw:{scoper, no_scopes} ->
             ok = logger:warning("Scoper: attempt to add meta: ~p when no scopes set", [Meta])
     end.
 
--spec remove_meta([key()]) ->
+-spec remove_meta(_, [key()]) ->
     ok.
-remove_meta(Keys) ->
+remove_meta(Key, Keys) ->
     try
-        ScopeName = get_current_scope(),
+        ScopeName = get_current_scope(Key),
         store(ScopeName, maps:without(Keys, find(ScopeName)))
     catch
         throw:{scoper, no_scopes} ->
             ok = logger:warning("Scoper: attempt to remove meta keys ~p when no scopes set", [Keys])
     end.
 
--spec get_current_scope() ->
+-spec get_current_scope(_) ->
     scope() | no_return().
-get_current_scope() ->
-    case get_scope_names() of
+get_current_scope(Key) ->
+    case get_scope_names(Key) of
         [] ->
             erlang:throw({scoper, no_scopes});
         Scopes ->
@@ -119,10 +119,10 @@ collect() ->
 clear() ->
     scoper_storage:delete().
 
--spec get_scope_names() ->
+-spec get_scope_names(_) ->
     [scope()].
-get_scope_names() ->
-    case find(?TAG) of
+get_scope_names(Key) ->
+    case find(Key, ?TAG) of
         undefined ->
             [];
         Scopes ->
@@ -133,32 +133,46 @@ get_scope_names() ->
 %%
 %% Internal functions
 %%
--spec set_scope_names([scope()]) ->
+-spec set_scope_names(_, [scope()]) ->
     ok.
-set_scope_names(Names) ->
-    store(?TAG, Names).
+set_scope_names(Key, Names) ->
+    store(Key, ?TAG, Names).
 
--spec remove_scope(scope(), [scope()]) ->
+
+-spec remove_scope(_, scope(), [scope()]) ->
      ok.
-remove_scope(Name, Scopes = []) ->
+remove_scope(_, Name, Scopes = []) ->
     ok = error_logger:warning_msg("Scoper: attempt to remove scope ~p from the scopes stack: ~p", [Name, Scopes]);
-remove_scope(Name, [Name | Rest]) ->
-    ok = delete(Name),
-    ok = set_scope_names(Rest);
-remove_scope(Name, Scopes) ->
+remove_scope(Key, Name, [Name | Rest]) ->
+    ok = delete(Key, Name),
+    ok = set_scope_names(Key, Rest);
+remove_scope(_, Name, Scopes) ->
     ok = error_logger:warning_msg("Scoper: attempt to remove scope ~p from the scopes stack: ~p", [Name, Scopes]).
 
 -spec store(scope(), scoper_storage:payload()) ->
     ok.
-store(Key, Value) ->
-    scoper_storage:store(Key, Value).
+store(Scope, Value) ->
+    store(ok, Scope, Value).
+
+store(Key, Scope, Value) ->
+    scoper_storage:store(Key, Scope, Value).
 
 -spec find(scope()) ->
     scoper_storage:payload() | undefined.
-find(Key) ->
-    scoper_storage:find(Key).
+find(Scope) ->
+    find(ok, Scope).
 
--spec delete(scope()) ->
+-spec find(_, scope()) ->
+    scoper_storage:payload() | undefined.
+find(Key, Scope) ->
+    scoper_storage:find(Key, Scope).
+
+% -spec delete(scope()) ->
+%     ok.
+% delete(Scope) ->
+%    delete(ok, Scope).
+
+-spec delete(_, scope()) ->
     ok.
-delete(Key) ->
-    scoper_storage:delete(Key).
+delete(Key, Scope) ->
+    scoper_storage:delete(Key, Scope).
