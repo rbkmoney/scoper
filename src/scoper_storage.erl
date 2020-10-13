@@ -8,62 +8,50 @@
 -export([collect/0]).
 
 %% Types
--type key()     :: atom().
--type value()   :: any().
--type meta()    :: #{key() => value()}.
--type scope()   :: key().
+-type key() :: atom().
+-type value() :: any().
+-type meta() :: #{key() => value()}.
+-type scope() :: key().
 -type payload() :: meta() | [scope()].
--type data()    :: #{scope() => payload()}.
+-type data() :: #{scope() => payload()}.
 
 -export_type([key/0, value/0, meta/0, scope/0, payload/0, data/0]).
 
 %%
 %% Behaviour definition
 %%
--callback store(scope(), payload()) ->
-    ok.
+-callback store(scope(), payload()) -> ok.
 
--callback find(scope()) ->
-    payload() | undefined.
+-callback find(scope()) -> payload() | undefined.
 
--callback delete() ->
-    ok.
+-callback delete() -> ok.
 
--callback delete(scope()) ->
-    ok.
+-callback delete(scope()) -> ok.
 
--callback collect() ->
-    data().
-
+-callback collect() -> data().
 
 %%
 %% API
 %%
--spec store(scope(), payload()) ->
-    ok.
+-spec store(scope(), payload()) -> ok.
 store(ScopeName, Payload) ->
     (logger()):store(ScopeName, Payload).
 
--spec find(scope()) ->
-    payload() | undefined.
+-spec find(scope()) -> payload() | undefined.
 find(ScopeName) ->
     (logger()):find(ScopeName).
 
--spec delete() ->
-    ok.
+-spec delete() -> ok.
 delete() ->
     (logger()):delete().
 
--spec delete(scope()) ->
-    ok.
+-spec delete(scope()) -> ok.
 delete(ScopeName) ->
     (logger()):delete(ScopeName).
 
--spec collect() ->
-    data().
+-spec collect() -> data().
 collect() ->
     (logger()):collect().
-
 
 %%
 %% Internal functions

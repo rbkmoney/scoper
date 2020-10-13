@@ -9,19 +9,17 @@
 -type options() :: #{
     event_handler_opts => woody_event_handler:options()
 }.
+
 -export_type([options/0]).
 
 %%
 %% woody_event_handler behaviour callbacks
 %%
--spec handle_event(Event, RpcId, Meta, Opts) ->
-    ok
-when
+-spec handle_event(Event, RpcId, Meta, Opts) -> ok when
     Event :: woody_event_handler:event(),
     RpcId :: woody:rpc_id() | undefined,
-    Meta  :: woody_event_handler:event_meta(),
-    Opts  :: options().
-
+    Meta :: woody_event_handler:event_meta(),
+    Opts :: options().
 %% client scoping
 handle_event(Event = 'client begin', RpcID, RawMeta, Opts) ->
     ok = scoper:add_scope(get_scope_name(client)),
@@ -35,7 +33,6 @@ handle_event(Event = 'client end', RpcID, RawMeta, Opts) ->
 handle_event(Event = 'client cache end', RpcID, RawMeta, Opts) ->
     ok = do_handle_event(Event, RpcID, RawMeta, Opts),
     scoper:remove_scope();
-
 %% server scoping
 handle_event(Event = 'server receive', RpcID, RawMeta, Opts) ->
     ok = add_server_meta(RpcID),
@@ -43,7 +40,6 @@ handle_event(Event = 'server receive', RpcID, RawMeta, Opts) ->
 handle_event(Event = 'server send', RpcID, RawMeta, Opts) ->
     ok = do_handle_event(Event, RpcID, RawMeta, Opts),
     remove_server_meta();
-
 %% special cases
 handle_event(Event = 'internal error', RpcID, RawMeta, Opts) ->
     ok = do_handle_event(Event, RpcID, RawMeta, Opts),
@@ -62,15 +58,14 @@ handle_event(Event = 'trace event', RpcID, RawMeta = #{role := Role}, Opts) ->
 handle_event(Event, RpcID, RawMeta, Opts) ->
     do_handle_event(Event, RpcID, RawMeta, Opts).
 
-
 %%
 %% Internal functions
 %%
 do_handle_event(Event, _RpcID, _RawMeta, _Opts) when
     Event =:= 'client begin' orelse
-    Event =:= 'client end' orelse
-    Event =:= 'client cache begin' orelse
-    Event =:= 'client cache end'
+        Event =:= 'client end' orelse
+        Event =:= 'client cache begin' orelse
+        Event =:= 'client cache end'
 ->
     ok;
 do_handle_event(Event, RpcID, RawMeta = #{role := Role}, Opts) ->
@@ -119,15 +114,16 @@ add_server_meta(RpcID) ->
     logger:set_process_metadata(add_rpc_id(RpcID, scoper:collect())).
 
 remove_server_meta() ->
-    _ = case scoper:get_current_scope() of
-        'rpc.server' ->
-            ok;
-        _  ->
-            logger:warning(
-                "Scoper woody event handler: removing uncleaned scopes on the server: ~p",
-                [scoper:get_scope_names()]
-            )
-    end,
+    _ =
+        case scoper:get_current_scope() of
+            'rpc.server' ->
+                ok;
+            _ ->
+                logger:warning(
+                    "Scoper woody event handler: removing uncleaned scopes on the server: ~p",
+                    [scoper:get_scope_names()]
+                )
+        end,
     ok = scoper:clear().
 
 add_rpc_id(undefined, MD) ->

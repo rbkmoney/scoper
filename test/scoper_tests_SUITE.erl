@@ -1,4 +1,5 @@
 -module(scoper_tests_SUITE).
+
 -include_lib("common_test/include/ct.hrl").
 
 -export([all/0]).
@@ -8,12 +9,10 @@
 -export([init_per_group/2]).
 -export([end_per_group/2]).
 
-
 -export([
     mirror_scoper_state_in_meta/1,
     play_with_meta/1
 ]).
-
 
 -type test_name() :: atom().
 -type group_name() :: atom().
@@ -24,8 +23,7 @@
 %%
 %% Tests descriptions
 %%
--spec all() ->
-    [test_name()].
+-spec all() -> [test_name()].
 all() ->
     [
         {group, procdict},
@@ -33,9 +31,7 @@ all() ->
         {group, logger}
     ].
 
--spec groups() ->
-    [{group_name(), [parallel | sequence], [test_name()]}].
-
+-spec groups() -> [{group_name(), [parallel | sequence], [test_name()]}].
 groups() ->
     [
         {procdict, [sequence], [
@@ -52,24 +48,19 @@ groups() ->
         ]}
     ].
 
-
 %%
 %% Starting/stopping
 %%
--spec init_per_suite(config()) ->
-    config().
+-spec init_per_suite(config()) -> config().
 init_per_suite(C) ->
     {ok, Apps} = application:ensure_all_started(scoper),
-    [{apps, Apps}|C].
+    [{apps, Apps} | C].
 
--spec end_per_suite(config()) ->
-    any().
+-spec end_per_suite(config()) -> any().
 end_per_suite(C) ->
     [application:stop(App) || App <- proplists:get_value(apps, C)].
 
--spec init_per_group(group_name(), config()) ->
-    config().
-
+-spec init_per_group(group_name(), config()) -> config().
 init_per_group(procdict, C) ->
     init_group(scoper_storage_procdict, C);
 init_per_group(lager, C) ->
@@ -81,18 +72,15 @@ init_group(Logger, C) ->
     ok = application:set_env(scoper, storage, Logger),
     [{scoper_storage, Logger} | C].
 
--spec end_per_group(group_name(), config()) ->
-    _.
+-spec end_per_group(group_name(), config()) -> _.
 end_per_group(_, C) ->
     application:unset_env(scoper, storage),
     lists:keydelete(scoper_storage, 1, C).
 
-
 %%
 %% Tests
 %%
--spec mirror_scoper_state_in_meta(config()) ->
-    ok.
+-spec mirror_scoper_state_in_meta(config()) -> ok.
 mirror_scoper_state_in_meta(_C) ->
     mirror_scoper_state_in_meta([scope1, scope2, scope3], []).
 
@@ -108,28 +96,27 @@ mirror_scoper_state_in_meta([Scope | NextScopes], State) ->
     ),
     ok = match_scoper_state_and_meta(State).
 
--spec play_with_meta(config()) ->
-    ok.
+-spec play_with_meta(config()) -> ok.
 play_with_meta(_C) ->
     %% Try to operate on non initilized scopes
-    ok  = scoper:add_meta(#{dummy => dummy}),
+    ok = scoper:add_meta(#{dummy => dummy}),
     #{} = scoper:collect(),
-    ok  = scoper:remove_meta(dummy),
+    ok = scoper:remove_meta(dummy),
     #{} = scoper:collect(),
 
     %% Create scope1 and add key1
-    ok               = scoper:add_scope(scope1),
-    #{}              = find(scope1),
-    ok               = scoper:add_meta(#{key1 => dummy}),
+    ok = scoper:add_scope(scope1),
+    #{} = find(scope1),
+    ok = scoper:add_meta(#{key1 => dummy}),
     #{key1 := dummy} = find(scope1),
 
     %% Create scope2 and add key2
-    ok               = scoper:add_scope(scope2, #{key2 => dummy}),
-    #{}              = find(scope2),
+    ok = scoper:add_scope(scope2, #{key2 => dummy}),
+    #{} = find(scope2),
     #{key2 := dummy} = find(scope2),
 
     %% Update key2 in scope2
-    ok                      = scoper:add_meta(#{key2 => not_so_dummy}),
+    ok = scoper:add_meta(#{key2 => not_so_dummy}),
     #{key2 := not_so_dummy} = find(scope2),
 
     %% No key1 in scope2
@@ -141,55 +128,55 @@ play_with_meta(_C) ->
     #{key1 := smart} = find(scope2),
 
     %% Remove key1 from scope2
-    ok               = scoper:remove_meta([key1]),
+    ok = scoper:remove_meta([key1]),
     #{key1 := dummy} = find(scope1),
-    undefined        = maps:get(key1, find(scope2), undefined),
+    undefined = maps:get(key1, find(scope2), undefined),
 
     %% Try to create scopes: scope1 and scope2 again, and also reserved 'scoper'
     Data = scoper:collect(),
-    ok   = scoper:add_scope(scope1),
+    ok = scoper:add_scope(scope1),
     Data = scoper:collect(),
-    ok   = scoper:add_scope(scope1),
+    ok = scoper:add_scope(scope1),
     Data = scoper:collect(),
-    ok   = scoper:add_scope(scope2),
+    ok = scoper:add_scope(scope2),
     Data = scoper:collect(),
-    ok   = scoper:add_scope(scoper),
+    ok = scoper:add_scope(scoper),
     Data = scoper:collect(),
 
     %% Try to remove scope1 (still in scope2 now)
-    ok   = scoper:remove_scope(scope1),
+    ok = scoper:remove_scope(scope1),
     Data = scoper:collect(),
 
     %% Try to remove unexisting scope5 (still in scope2 now)
-    ok   = scoper:remove_scope(scope5),
+    ok = scoper:remove_scope(scope5),
     Data = scoper:collect(),
 
     %% Remove scope2, now in scope1
-    ok               = scoper:remove_scope(scope2),
-    undefined        = find(scope2),
+    ok = scoper:remove_scope(scope2),
+    undefined = find(scope2),
     #{key1 := dummy} = find(scope1),
 
     %% Add key2 to scope1
-    ok                              = scoper:add_meta(#{key2 => dummy}),
+    ok = scoper:add_meta(#{key2 => dummy}),
     #{key1 := dummy, key2 := dummy} = find(scope1),
 
     %% Remove scope1, no scopes left
-    ok        = scoper:remove_scope(),
+    ok = scoper:remove_scope(),
     undefined = find(scope1),
-    #{}       = scoper:collect(),
+    #{} = scoper:collect(),
 
     %% Try to operate when no scopes are there
-    ok  = scoper:add_meta(#{dummy => dummy}),
+    ok = scoper:add_meta(#{dummy => dummy}),
     #{} = scoper:collect(),
-    ok  = scoper:remove_meta(dummy),
+    ok = scoper:remove_meta(dummy),
     #{} = scoper:collect(),
 
     %% Add scopes and clear them all
-    ok  = scoper:add_scope(scope1),
-    ok  = scoper:add_scope(scope2),
+    ok = scoper:add_scope(scope1),
+    ok = scoper:add_scope(scope2),
     #{} = find(scope1),
     #{} = find(scope2),
-    ok  = scoper:clear(),
+    ok = scoper:clear(),
     #{} = scoper:collect().
 
 %%
