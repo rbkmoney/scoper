@@ -9,7 +9,8 @@ TEMPLATES_PATH := .
 SERVICE_NAME := scoper
 BUILD_IMAGE_TAG := cd38c35976f3684fe7552533b6175a4c3460e88b
 
-CALL_W_CONTAINER := all submodules rebar-update compile xref lint dialyze test clean distclean
+CALL_W_CONTAINER := all submodules rebar-update compile xref lint \
+					dialyze test clean distclean check_format format
 
 .PHONY: $(CALL_W_CONTAINER)
 
@@ -47,4 +48,10 @@ dialyze:
 
 lint:
 	elvis rock
+
+check_format:
+	$(REBAR) as test fmt -c
+
+format:
+	$(REBAR) fmt -w
 
