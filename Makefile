@@ -7,7 +7,9 @@ UTILS_PATH := build_utils
 # with handling of the varriable in build_utils is fixed
 TEMPLATES_PATH := .
 SERVICE_NAME := scoper
-BUILD_IMAGE_TAG := cd38c35976f3684fe7552533b6175a4c3460e88b
+
+BUILD_IMAGE_NAME := build-erlang
+BUILD_IMAGE_TAG := 2ea61e9556ad67d5918f060ed50353662ed84e59
 
 CALL_W_CONTAINER := all submodules rebar-update compile xref lint \
 					dialyze test clean distclean check_format format
@@ -54,4 +56,3 @@ check_format:
 
 format:
 	$(REBAR) fmt -w
-
