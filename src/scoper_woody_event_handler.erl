@@ -73,15 +73,32 @@ do_handle_event(Event, RpcID, EvMeta = #{role := Role}, Opts) ->
     Level = woody_event_handler:get_event_severity(Event, EvMeta),
     Meta = woody_event_handler:format_meta(Event, EvMeta, ?REQUISITE_META),
     ok = scoper:add_meta(Meta),
-    logger:log(Level, fun do_format_event/1, {Event, Role, EvMeta, RpcID, Opts});
+    log_event(Level, Event, Role, EvMeta, RpcID, Opts);
 do_handle_event(_Event, _RpcID, _RawMeta, _Opts) ->
     ok.
+
+-if(OTP_RELEASE >= 24).
+
+log_event(Level, Event, Role, EvMeta, RpcID, Opts) ->
+    logger:log(Level, fun do_format_event/1, {Event, Role, EvMeta, RpcID, Opts}).
 
 do_format_event({Event, Role, EvMeta, RpcID, Opts}) ->
     EvHandlerOptions = get_event_handler_options(Opts),
     Format = woody_event_handler:format_event(Event, EvMeta, EvHandlerOptions),
     LogMeta = collect_md(Role, RpcID),
     {Format, LogMeta}.
+
+-else.
+
+log_event(Level, Event, Role, EvMeta, RpcID, Opts) ->
+    LogMeta = collect_md(Role, RpcID),
+    logger:log(Level, fun do_format_event/1, {Event, EvMeta, Opts}, LogMeta).
+
+do_format_event({Event, EvMeta, Opts}) ->
+    EvHandlerOptions = get_event_handler_options(Opts),
+    woody_event_handler:format_event(Event, EvMeta, EvHandlerOptions).
+
+-endif.
 
 %% Log metadata should contain rpc ID properties (trace_id, span_id and parent_id)
 %% _on the top level_ according to the requirements.
