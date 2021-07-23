@@ -23,7 +23,7 @@
 %%
 %% Tests descriptions
 %%
--spec all() -> [test_name()].
+-spec all() -> [{group, group_name()}].
 all() ->
     [
         {group, procdict},
@@ -96,12 +96,12 @@ mirror_scoper_state_in_meta([Scope | NextScopes], State) ->
     ),
     ok = match_scoper_state_and_meta(State).
 
--spec play_with_meta(config()) -> ok.
+-spec play_with_meta(config()) -> _.
 play_with_meta(_C) ->
     %% Try to operate on non initilized scopes
     ok = scoper:add_meta(#{dummy => dummy}),
     #{} = scoper:collect(),
-    ok = scoper:remove_meta(dummy),
+    ok = scoper:remove_meta([dummy]),
     #{} = scoper:collect(),
 
     %% Create scope1 and add key1
@@ -168,7 +168,7 @@ play_with_meta(_C) ->
     %% Try to operate when no scopes are there
     ok = scoper:add_meta(#{dummy => dummy}),
     #{} = scoper:collect(),
-    ok = scoper:remove_meta(dummy),
+    ok = scoper:remove_meta([dummy]),
     #{} = scoper:collect(),
 
     %% Add scopes and clear them all
@@ -188,7 +188,7 @@ match_scoper_state_and_meta(State) ->
 match_scoper_state_and_meta([], #{}) ->
     ok;
 match_scoper_state_and_meta(State, Data = #{?TAG := State}) ->
-    lists:foldr(
+    _ = lists:foldr(
         fun(Scope, Acc) ->
             do_match_scoper_state_and_meta(Scope, [Scope | Acc], Data)
         end,

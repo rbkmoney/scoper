@@ -21,17 +21,13 @@
     Meta :: woody_event_handler:event_meta(),
     Opts :: options().
 %% client scoping
-handle_event(Event = 'client begin', RpcID, RawMeta, Opts) ->
-    ok = scoper:add_scope(get_scope_name(client)),
-    do_handle_event(Event, RpcID, RawMeta, Opts);
-handle_event(Event = 'client cache begin', RpcID, RawMeta, Opts) ->
-    ok = scoper:add_scope(get_scope_name(caching_client)),
-    do_handle_event(Event, RpcID, RawMeta, Opts);
-handle_event(Event = 'client end', RpcID, RawMeta, Opts) ->
-    ok = do_handle_event(Event, RpcID, RawMeta, Opts),
+handle_event('client begin', _RpcID, _Meta, _Opts) ->
+    scoper:add_scope(get_scope_name(client));
+handle_event('client cache begin', _RpcID, _Meta, _Opts) ->
+    scoper:add_scope(get_scope_name(caching_client));
+handle_event('client end', _RpcID, _Meta, _Opts) ->
     scoper:remove_scope();
-handle_event(Event = 'client cache end', RpcID, RawMeta, Opts) ->
-    ok = do_handle_event(Event, RpcID, RawMeta, Opts),
+handle_event('client cache end', _RpcID, _Meta, _Opts) ->
     scoper:remove_scope();
 %% server scoping
 handle_event(Event = 'server receive', RpcID, RawMeta, Opts) ->
@@ -61,25 +57,48 @@ handle_event(Event, RpcID, RawMeta, Opts) ->
 %%
 %% Internal functions
 %%
-do_handle_event(Event, _RpcID, _RawMeta, _Opts) when
-    Event =:= 'client begin' orelse
-        Event =:= 'client end' orelse
-        Event =:= 'client cache begin' orelse
-        Event =:= 'client cache end'
-->
-    ok;
-do_handle_event(Event, RpcID, RawMeta = #{role := Role}, Opts) ->
-    {Level, {Format, Args}, Meta} = woody_event_handler:format_event_and_meta(
-        Event,
-        RawMeta,
-        RpcID,
-        [event, service, function, type, metadata, url, deadline, execution_duration_ms],
-        get_event_handler_options(Opts)
-    ),
+
+-define(REQUISITE_META, [
+    event,
+    service,
+    function,
+    type,
+    metadata,
+    url,
+    deadline,
+    execution_duration_ms
+]).
+
+do_handle_event(Event, RpcID, EvMeta = #{role := Role}, Opts) ->
+    Level = woody_event_handler:get_event_severity(Event, EvMeta),
+    Meta = woody_event_handler:format_meta(Event, EvMeta, ?REQUISITE_META),
     ok = scoper:add_meta(Meta),
-    logger:log(Level, Format, Args, collect_md(Role, RpcID));
+    log_event(Level, Event, Role, EvMeta, RpcID, Opts);
 do_handle_event(_Event, _RpcID, _RawMeta, _Opts) ->
     ok.
+
+-if(OTP_RELEASE >= 24).
+
+log_event(Level, Event, Role, EvMeta, RpcID, Opts) ->
+    logger:log(Level, fun do_format_event/1, {Event, Role, EvMeta, RpcID, Opts}).
+
+do_format_event({Event, Role, EvMeta, RpcID, Opts}) ->
+    EvHandlerOptions = get_event_handler_options(Opts),
+    Format = woody_event_handler:format_event(Event, EvMeta, EvHandlerOptions),
+    LogMeta = collect_md(Role, RpcID),
+    {Format, LogMeta}.
+
+-else.
+
+log_event(Level, Event, Role, EvMeta, RpcID, Opts) ->
+    LogMeta = collect_md(Role, RpcID),
+    logger:log(Level, fun do_format_event/1, {Event, EvMeta, Opts}, LogMeta).
+
+do_format_event({Event, EvMeta, Opts}) ->
+    EvHandlerOptions = get_event_handler_options(Opts),
+    woody_event_handler:format_event(Event, EvMeta, EvHandlerOptions).
+
+-endif.
 
 %% Log metadata should contain rpc ID properties (trace_id, span_id and parent_id)
 %% _on the top level_ according to the requirements.
