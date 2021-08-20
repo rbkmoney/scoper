@@ -9,7 +9,7 @@ TEMPLATES_PATH := .
 SERVICE_NAME := scoper
 
 BUILD_IMAGE_NAME := build-erlang
-BUILD_IMAGE_TAG := 2ea61e9556ad67d5918f060ed50353662ed84e59
+BUILD_IMAGE_TAG := aaa79c2d6b597f93f5f8b724eecfc31ec2e2a23b
 
 CALL_W_CONTAINER := all submodules rebar-update compile xref lint \
 					dialyze test clean distclean check_format format
@@ -49,7 +49,7 @@ dialyze:
 	$(REBAR) as test dialyzer
 
 lint:
-	elvis rock
+	elvis rock -V
 
 check_format:
 	$(REBAR) as test fmt -c
